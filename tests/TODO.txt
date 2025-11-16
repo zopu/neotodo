@@ -1,7 +1,17 @@
 New:
+  baz
+  new task
 
 Top This Week:
+  foo
+  gah
+
+This Week:
+  task 1
+  yet another task
 
 Now:
+  bar
+  blah
 
 Done:
