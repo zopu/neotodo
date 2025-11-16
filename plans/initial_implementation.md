@@ -12,8 +12,6 @@ We use **plenary.nvim** for lightweight automated testing. Tests are added along
 
 ## Commit 1: Initial plugin structure ✓ COMPLETED
 
-**Commit**: `692f2dcf0795031853e75763bd1f06df41991ea8`
-
 **Purpose**: Set up the basic Neovim plugin skeleton.
 
 **Files to create**:
@@ -31,8 +29,6 @@ We use **plenary.nvim** for lightweight automated testing. Tests are added along
 ---
 
 ## Commit 1a: Testing infrastructure ✓ COMPLETED
-
-**Commit**: `a5c4d20f98d682762505f57f7faba22d9e7290f4`
 
 **Purpose**: Set up minimal test infrastructure for incremental testing.
 
@@ -547,7 +543,7 @@ end)
 
 ---
 
-## Commit 9: Buffer-local keybindings
+## Commit 9: Buffer-local keybindings ✓ COMPLETED
 
 **Purpose**: Set up keybindings that only work in TODO.txt files.
 
