@@ -33,9 +33,23 @@ function M.setup(user_config)
     commands.navigate_to_section()
   end, { desc = "Navigate to a section using a picker" })
 
+  vim.api.nvim_create_user_command("NeoTodoFocusModeEnable", function()
+    commands.focus_mode_enable()
+  end, { desc = "Enable focus mode (hide all sections except Now and Top This Week)" })
+
+  vim.api.nvim_create_user_command("NeoTodoFocusModeDisable", function()
+    commands.focus_mode_disable()
+  end, { desc = "Disable focus mode (show all sections)" })
+
+  vim.api.nvim_create_user_command("NeoTodoFocusModeToggle", function()
+    commands.focus_mode_toggle()
+  end, { desc = "Toggle focus mode" })
+
+  -- Set up autocommands
+  local autocmds = require("neotodo.autocmds")
+  autocmds.setup()
+
   -- Future commits will add:
-  -- - More command registration
-  -- - Autocommand setup
   -- - Keybinding configuration
 end
 

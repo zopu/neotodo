@@ -3,6 +3,7 @@
 local parser = require("neotodo.parser")
 local config = require("neotodo.config")
 local task_mover = require("neotodo.task_mover")
+local focus = require("neotodo.focus")
 
 local M = {}
 
@@ -222,6 +223,24 @@ function M.navigate_to_section(bufnr)
 	ui.pick_section(sections, function(section_name, line)
 		vim.api.nvim_win_set_cursor(0, { line, 0 })
 	end, bufnr, "Navigate to Section")
+end
+
+--- Enable focus mode
+--- Hides all sections except "Now" and "Top This Week"
+function M.focus_mode_enable()
+	focus.focus_mode_enable()
+end
+
+--- Disable focus mode
+--- Shows all sections
+function M.focus_mode_disable()
+	focus.focus_mode_disable()
+end
+
+--- Toggle focus mode
+--- Enables focus mode if disabled, disables if enabled
+function M.focus_mode_toggle()
+	focus.focus_mode_toggle()
 end
 
 return M

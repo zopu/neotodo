@@ -484,7 +484,7 @@ end)
 
 ---
 
-## Commit 8: Focus mode implementation
+## Commit 8: Focus mode implementation ✓ COMPLETED
 
 **Purpose**: Hide sections except "Now" and "Top This Week".
 
