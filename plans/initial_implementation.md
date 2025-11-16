@@ -240,7 +240,7 @@ end)
 
 ---
 
-## Commit 4: Task movement utilities
+## Commit 4: Task movement utilities ✓ COMPLETED
 
 **Purpose**: Create shared utilities for moving tasks between sections.
 
