@@ -10,6 +10,7 @@ M.defaults = {
 		move_task = nil, -- Move task to section (with picker)
 		focus_enable = nil, -- Enable focus mode
 		focus_disable = nil, -- Disable focus mode
+		focus_toggle = nil, -- Toggle focus mode
 	},
 
 	-- File detection pattern

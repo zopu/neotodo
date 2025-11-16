@@ -93,6 +93,16 @@ function M.setup_buffer_keybinds(bufnr)
       silent = true,
     })
   end
+
+  if keybinds.focus_toggle then
+    vim.keymap.set('n', keybinds.focus_toggle, function()
+      commands.focus_mode_toggle()
+    end, {
+      buffer = bufnr,
+      desc = 'Toggle focus mode',
+      silent = true,
+    })
+  end
 end
 
 return M

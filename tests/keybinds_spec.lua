@@ -100,6 +100,7 @@ describe("keybinds", function()
       move_task = '<leader>tm',
       focus_enable = '<leader>fe',
       focus_disable = '<leader>fd',
+      focus_toggle = '<leader>ft',
     }
 
     -- Set up keybindings
@@ -114,6 +115,7 @@ describe("keybinds", function()
       move_task = false,
       focus_enable = false,
       focus_disable = false,
+      focus_toggle = false,
     }
 
     -- Match descriptions to keybinds
@@ -125,6 +127,7 @@ describe("keybinds", function()
         if map.desc:match('Move task to section') then keybinds_found.move_task = true end
         if map.desc:match('Enable focus mode') then keybinds_found.focus_enable = true end
         if map.desc:match('Disable focus mode') then keybinds_found.focus_disable = true end
+        if map.desc:match('Toggle focus mode') then keybinds_found.focus_toggle = true end
       end
     end
 
