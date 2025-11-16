@@ -1,0 +1,408 @@
+*neotodo.txt*  A Neovim plugin for managing TODO.txt files with sections
+
+Author: Mike Perrow
+License: MIT
+Version: 0.1.0
+
+==============================================================================
+CONTENTS                                                    *neotodo-contents*
+
+    1. Introduction ............................ |neotodo-introduction|
+    2. Installation ............................ |neotodo-installation|
+    3. Quick Start ............................. |neotodo-quickstart|
+    4. Configuration ........................... |neotodo-configuration|
+    5. Commands ................................ |neotodo-commands|
+    6. TODO.txt File Structure ................. |neotodo-structure|
+    7. Focus Mode .............................. |neotodo-focus-mode|
+    8. Examples ................................ |neotodo-examples|
+    9. About ................................... |neotodo-about|
+
+==============================================================================
+1. INTRODUCTION                                         *neotodo-introduction*
+
+NeoTODO is a Neovim plugin for managing TODO.txt files using an opinionated
+structure with section headers and indented task lists. It provides commands
+for adding tasks, marking them as done, moving them between sections, and a
+focus mode to hide distractions.
+
+Features:
+  - Add new tasks to the "New" section
+  - Mark tasks as done (moves to "Done" section)
+  - Move tasks between any sections using a picker
+  - Navigate to sections quickly with a picker
+  - Focus mode: hide all sections except "Now", "Today", and "Top This Week"
+  - Buffer-local keybindings for TODO.txt files only
+  - Fully configurable
+
+==============================================================================
+2. INSTALLATION                                         *neotodo-installation*
+
+Using lazy.nvim: >lua
+    {
+      "mikeperrow/neotodo",
+      config = function()
+        require("neotodo").setup({
+          -- Your configuration here (optional)
+        })
+      end,
+    }
+<
+
+Using packer.nvim: >lua
+    use {
+      "mikeperrow/neotodo",
+      config = function()
+        require("neotodo").setup()
+      end,
+    }
+<
+
+Using vim-plug: >vim
+    Plug 'mikeperrow/neotodo'
+
+    " In your init.vim or after plug#end()
+    lua << EOF
+      require("neotodo").setup()
+    EOF
+<
+
+==============================================================================
+3. QUICK START                                            *neotodo-quickstart*
+
+1. Install the plugin using your preferred plugin manager
+2. Create or open a file named TODO.txt
+3. Add configuration with keybindings (see |neotodo-configuration|)
+4. Use commands (see |neotodo-commands|) or keybindings to manage tasks
+
+Example TODO.txt structure: >
+    New:
+      Write documentation
+      Fix bug in parser
+
+    Now:
+      Implement focus mode
+
+    Done:
+      Create initial plugin structure
+<
+
+==============================================================================
+4. CONFIGURATION                                       *neotodo-configuration*
+
+Default configuration:
+>lua
+    require("neotodo").setup({
+      -- Keybindings (nil means no default keybind)
+      keybinds = {
+        add_task = nil,           -- Add new task to "New" section
+        mark_done = nil,          -- Mark task as done
+        move_to_section = nil,    -- Navigate to section (with picker)
+        move_task = nil,          -- Move task to section (with picker)
+        focus_enable = nil,       -- Enable focus mode
+        focus_disable = nil,      -- Disable focus mode
+        focus_toggle = nil,       -- Toggle focus mode
+      },
+
+      -- File detection pattern
+      file_pattern = "TODO.txt",
+
+      -- Indentation for tasks (number of spaces)
+      task_indent = 2,
+
+      -- Sections that remain visible in focus mode
+      focus_sections = { "Now", "Today", "Top This Week" },
+    })
+<
+
+Example configuration with keybindings:
+>lua
+    require("neotodo").setup({
+      keybinds = {
+        add_task = "<leader>ta",
+        mark_done = "<leader>td",
+        move_task = "<leader>tm",
+        move_to_section = "<leader>ts",
+        focus_toggle = "<leader>tf",
+      },
+    })
+<
+
+                                                        *neotodo-config-keybinds*
+keybinds.add_task ~
+    Keybinding to add a new task to the "New" section. When triggered, it:
+    - Creates "New:" section if it doesn't exist
+    - Adds an indented line under "New:"
+    - Places cursor on new line in insert mode
+
+keybinds.mark_done ~
+    Keybinding to mark the current task as done. When triggered, it:
+    - Removes task from current section
+    - Adds task to "Done:" section (creates if needed)
+    - Moves cursor to next task
+
+keybinds.move_task ~
+    Keybinding to move current task to another section. When triggered, it:
+    - Shows picker with list of all sections
+    - Moves task to selected section
+    - Creates section if it doesn't exist
+
+keybinds.move_to_section ~
+    Keybinding to navigate to a section. When triggered, it:
+    - Shows picker with list of all sections
+    - Jumps cursor to selected section header
+
+keybinds.focus_enable ~
+    Keybinding to enable focus mode (see |neotodo-focus-mode|)
+
+keybinds.focus_disable ~
+    Keybinding to disable focus mode
+
+keybinds.focus_toggle ~
+    Keybinding to toggle focus mode on/off
+
+                                                    *neotodo-config-file-pattern*
+file_pattern ~
+    Pattern used to detect TODO files. Default is "TODO.txt".
+    Also supports "todo.txt" (case-insensitive).
+
+                                                     *neotodo-config-task-indent*
+task_indent ~
+    Number of spaces used to indent tasks under section headers.
+    Default is 2.
+
+                                                  *neotodo-config-focus-sections*
+focus_sections ~
+    List of section names that remain visible in focus mode.
+    Default is { "Now", "Today", "Top This Week" }.
+    All other sections will be folded when focus mode is enabled.
+
+==============================================================================
+5. COMMANDS                                                 *neotodo-commands*
+
+                                                           *:NeoTodoAddTask*
+:NeoTodoAddTask
+    Add a new task to the "New" section.
+    - Creates "New:" section at top of file if it doesn't exist
+    - Adds an indented line under "New:"
+    - Places cursor on new line in insert mode
+
+    Example: >
+        :NeoTodoAddTask
+<
+                                                       *:NeoTodoMarkAsDone*
+:NeoTodoMarkAsDone
+    Mark the current task as done.
+    - Cursor must be on a task line (indented line)
+    - Removes task from current section
+    - Adds task to "Done:" section (creates if needed)
+    - Moves cursor to next task in current section
+
+    Example: >
+        :NeoTodoMarkAsDone
+<
+                                                  *:NeoTodoMoveTaskToSection*
+:NeoTodoMoveTaskToSection [section_name]
+    Move the current task to a specified section.
+    - If section_name is provided, moves task directly
+    - If section_name is omitted, shows picker to select section
+    - Creates target section if it doesn't exist
+    - Cursor must be on a task line
+
+    Examples: >
+        :NeoTodoMoveTaskToSection Now
+        :NeoTodoMoveTaskToSection
+<
+                                                  *:NeoTodoNavigateToSection*
+:NeoTodoNavigateToSection
+    Navigate to a section using a picker.
+    - Shows list of all sections in current buffer
+    - Jumps cursor to selected section header
+
+    Example: >
+        :NeoTodoNavigateToSection
+<
+                                                    *:NeoTodoFocusModeEnable*
+:NeoTodoFocusModeEnable
+    Enable focus mode. Hides all sections except those configured in
+    focus_sections (default: "Now", "Today", "Top This Week").
+    See |neotodo-focus-mode| for details.
+
+    Example: >
+        :NeoTodoFocusModeEnable
+<
+                                                   *:NeoTodoFocusModeDisable*
+:NeoTodoFocusModeDisable
+    Disable focus mode. Shows all sections.
+
+    Example: >
+        :NeoTodoFocusModeDisable
+<
+                                                    *:NeoTodoFocusModeToggle*
+:NeoTodoFocusModeToggle
+    Toggle focus mode on/off.
+
+    Example: >
+        :NeoTodoFocusModeToggle
+<
+
+==============================================================================
+6. TODO.TXT FILE STRUCTURE                                *neotodo-structure*
+
+NeoTODO uses an opinionated TODO.txt structure with section headers and
+indented tasks.
+
+                                                     *neotodo-section-headers*
+Section Headers ~
+    Section headers are lines that end with a colon (:).
+    They organize tasks into logical groups.
+
+    Example: >
+        New:
+        Today:
+        Now:
+        Done:
+<
+                                                            *neotodo-task-lines*
+Task Lines ~
+    Tasks are indented lines under section headers.
+    Default indentation is 2 spaces (configurable via task_indent).
+
+    Example: >
+        New:
+          Write documentation
+          Fix bug in parser
+          Add new feature
+<
+                                                      *neotodo-special-sections*
+Special Sections ~
+    Some sections have special behavior:
+
+    New: ~
+        Default location for new tasks when using :NeoTodoAddTask
+
+    Done: ~
+        Archive for completed tasks when using :NeoTodoMarkAsDone
+
+    Now: ~
+        Remains visible in focus mode (current work in progress)
+
+    Today: ~
+        Remains visible in focus mode (tasks for today)
+
+    Top This Week: ~
+        Remains visible in focus mode (weekly priorities)
+
+You can create any additional sections you need. NeoTODO will recognize any
+line ending with a colon as a section header.
+
+==============================================================================
+7. FOCUS MODE                                              *neotodo-focus-mode*
+
+Focus mode helps you concentrate on your current work by hiding all sections
+except the most important ones.
+
+When focus mode is enabled:
+    - Only configured sections remain visible (default: "Now", "Today",
+      "Top This Week")
+    - All other sections are folded using Neovim's native folding
+    - You can still unfold individual sections manually if needed
+
+To customize which sections remain visible, configure focus_sections:
+>lua
+    require("neotodo").setup({
+      focus_sections = { "Now", "Today", "Urgent" },
+    })
+<
+
+Commands:
+    |:NeoTodoFocusModeEnable|  - Enable focus mode
+    |:NeoTodoFocusModeDisable| - Disable focus mode
+    |:NeoTodoFocusModeToggle|  - Toggle focus mode
+
+Recommended keybinding: >lua
+    keybinds = {
+      focus_toggle = "<leader>tf",
+    }
+<
+
+==============================================================================
+8. EXAMPLES                                                 *neotodo-examples*
+
+Example 1: Basic Setup with Keybindings ~
+>lua
+    require("neotodo").setup({
+      keybinds = {
+        add_task = "<leader>ta",
+        mark_done = "<leader>td",
+        move_task = "<leader>tm",
+        move_to_section = "<leader>ts",
+        focus_toggle = "<leader>tf",
+      },
+    })
+<
+
+Example 2: Custom File Pattern ~
+>lua
+    require("neotodo").setup({
+      file_pattern = "*.todo.txt",
+      keybinds = {
+        add_task = "<leader>ta",
+        mark_done = "<leader>td",
+      },
+    })
+<
+
+Example 3: Custom Task Indentation ~
+>lua
+    require("neotodo").setup({
+      task_indent = 4,  -- Use 4 spaces instead of 2
+    })
+<
+
+Example 4: Custom Focus Sections ~
+>lua
+    require("neotodo").setup({
+      focus_sections = { "Now", "Urgent", "Blocked" },
+      keybinds = {
+        focus_toggle = "<leader>tf",
+      },
+    })
+<
+
+Example TODO.txt File Structure ~
+>
+    New:
+      Review pull requests
+      Update documentation
+      Fix typo in README
+
+    Today:
+      Finish feature implementation
+      Write tests for new module
+
+    Now:
+      Debug authentication issue
+
+    Top This Week:
+      Complete quarterly planning
+      Refactor database layer
+
+    Blocked:
+      Waiting for API key
+      Need design review
+
+    Done:
+      Set up CI pipeline
+      Add test coverage
+      Create initial plugin structure
+<
+
+==============================================================================
+9. ABOUT                                                       *neotodo-about*
+
+GitHub: https://github.com/mikeperrow/neotodo
+Report bugs: https://github.com/mikeperrow/neotodo/issues
+
+License: MIT
+
+vim:tw=78:ts=8:ft=help:norl:
