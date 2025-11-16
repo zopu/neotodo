@@ -1,19 +1,20 @@
 local M = {}
 
 local parser = require('neotodo.parser')
+local config = require('neotodo.config')
 
 -- Create namespace for extmarks
 local ns_id = vim.api.nvim_create_namespace('neotodo_focus')
 
--- Sections that should remain visible in focus mode
-local FOCUSED_SECTIONS = {
-  ["Now"] = true,
-  ["Top This Week"] = true,
-}
-
 -- Check if a section should be folded in focus mode
+-- Reads from config to determine which sections should remain visible
 function M.should_fold_section(section_name)
-  return not FOCUSED_SECTIONS[section_name]
+  for _, focused_section in ipairs(config.options.focus_sections) do
+    if focused_section == section_name then
+      return false  -- Don't fold this section
+    end
+  end
+  return true  -- Fold all other sections
 end
 
 -- Check if focus mode is currently enabled

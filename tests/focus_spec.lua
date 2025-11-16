@@ -5,6 +5,7 @@ describe("focus", function()
 		assert.is_true(focus.should_fold_section("New"))
 		assert.is_true(focus.should_fold_section("Done"))
 		assert.is_false(focus.should_fold_section("Now"))
+		assert.is_false(focus.should_fold_section("Today"))
 		assert.is_false(focus.should_fold_section("Top This Week"))
 	end)
 

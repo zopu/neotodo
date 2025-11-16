@@ -10,6 +10,8 @@ This Week:
   task 1
   yet another task
 
+Today:
+
 Now:
   bar
   blah
