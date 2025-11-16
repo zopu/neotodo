@@ -167,7 +167,7 @@ end)
 
 ---
 
-## Commit 3: AddTask command
+## Commit 3: AddTask command ✓ COMPLETED
 
 **Purpose**: Implement the simplest command - adding a new task to the "New" section.
 

@@ -12,8 +12,14 @@ function M.setup(user_config)
   -- Merge user configuration with defaults
   config.setup(user_config or {})
 
+  -- Register commands
+  local commands = require("neotodo.commands")
+  vim.api.nvim_create_user_command("NeoTodoAddTask", function()
+    commands.add_task()
+  end, { desc = "Add a new task to the New section" })
+
   -- Future commits will add:
-  -- - Command registration
+  -- - More command registration
   -- - Autocommand setup
   -- - Keybinding configuration
 end
