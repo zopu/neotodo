@@ -45,12 +45,9 @@ function M.setup(user_config)
     commands.focus_mode_toggle()
   end, { desc = "Toggle focus mode" })
 
-  -- Set up autocommands
+  -- Set up autocommands (includes keybinding setup on buffer enter)
   local autocmds = require("neotodo.autocmds")
   autocmds.setup()
-
-  -- Future commits will add:
-  -- - Keybinding configuration
 end
 
 return M
