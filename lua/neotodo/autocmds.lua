@@ -8,10 +8,10 @@ function M.setup()
   -- Create autocommand group
   local group = vim.api.nvim_create_augroup('NeoTodo', { clear = true })
 
-  -- Apply/restore focus mode settings and keybindings when entering TODO.txt buffers
+  -- Apply/restore focus mode settings and keybindings when entering TODO.txt/todo.txt buffers
   vim.api.nvim_create_autocmd('BufEnter', {
     group = group,
-    pattern = 'TODO.txt',
+    pattern = { 'TODO.txt', 'todo.txt' },
     callback = function(ev)
       focus.on_buf_enter()
       keybinds.setup_buffer_keybinds(ev.buf)
@@ -21,7 +21,7 @@ function M.setup()
 
   vim.api.nvim_create_autocmd('BufLeave', {
     group = group,
-    pattern = 'TODO.txt',
+    pattern = { 'TODO.txt', 'todo.txt' },
     callback = function()
       focus.on_buf_leave()
     end,

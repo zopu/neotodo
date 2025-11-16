@@ -94,4 +94,32 @@ describe("autocmds", function()
     -- Should have the same number of autocmds (cleared and recreated, not duplicated)
     assert.equals(count_first, count_second, "Expected autocommands to be cleared and recreated, not duplicated")
   end)
+
+  it("applies keybindings when entering lowercase todo.txt buffer", function()
+    local config = require('neotodo.config')
+
+    -- Configure a keybind
+    config.options.keybinds = {
+      add_task = '<leader>ta',
+    }
+
+    -- Set up autocmds
+    autocmds.setup()
+
+    -- Create and enter a lowercase todo.txt buffer
+    vim.cmd('enew')
+    vim.api.nvim_buf_set_name(0, 'todo.txt')
+    vim.cmd('doautocmd BufEnter')
+
+    -- Check that the keybind was applied
+    local maps = vim.api.nvim_buf_get_keymap(0, 'n')
+    local has_keybind = false
+    for _, map in ipairs(maps) do
+      if map.desc and map.desc:match('Add new task') then
+        has_keybind = true
+        break
+      end
+    end
+    assert.is_true(has_keybind, "Expected keybindings to be applied on BufEnter for lowercase todo.txt")
+  end)
 end)

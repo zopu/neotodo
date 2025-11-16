@@ -135,4 +135,30 @@ describe("keybinds", function()
       assert.is_true(found, "Expected keybind " .. key .. " to be set")
     end
   end)
+
+  it("sets up keybindings for lowercase todo.txt", function()
+    -- Create a lowercase todo.txt buffer
+    vim.cmd('enew')
+    vim.api.nvim_buf_set_name(0, 'todo.txt')
+
+    -- Configure some keybinds
+    config.options.keybinds = {
+      add_task = '<leader>ta',
+      mark_done = '<leader>td',
+    }
+
+    -- Set up keybindings
+    keybinds.setup_buffer_keybinds(0)
+
+    -- Check that keymaps exist for this buffer
+    local maps = vim.api.nvim_buf_get_keymap(0, 'n')
+    local has_add_task = false
+    local has_mark_done = false
+    for _, map in ipairs(maps) do
+      if map.desc and map.desc:match('Add new task') then has_add_task = true end
+      if map.desc and map.desc:match('Mark current task') then has_mark_done = true end
+    end
+    assert.is_true(has_add_task, "Expected add_task keybind to be set for todo.txt")
+    assert.is_true(has_mark_done, "Expected mark_done keybind to be set for todo.txt")
+  end)
 end)

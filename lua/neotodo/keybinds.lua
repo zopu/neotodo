@@ -12,12 +12,10 @@ local function is_todo_buffer(bufnr)
 
   local filename = vim.fn.fnamemodify(bufname, ':t')
 
-  local config = require('neotodo.config')
-  local pattern = config.options.file_pattern
-
-  -- Match the pattern - check both the full name and the basename
-  -- This handles both "TODO.txt" and "/path/to/TODO.txt"
-  return filename == pattern or bufname == pattern
+  -- Match TODO.txt or todo.txt (case-sensitive for both variants)
+  -- This handles both "TODO.txt" and "/path/to/TODO.txt" as well as lowercase
+  return filename == 'TODO.txt' or filename == 'todo.txt'
+      or bufname == 'TODO.txt' or bufname == 'todo.txt'
 end
 
 -- Set up buffer-local keybindings for a TODO.txt buffer
