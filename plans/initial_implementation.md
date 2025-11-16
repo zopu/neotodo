@@ -398,6 +398,7 @@ end)
 - `move_task_to_section(section_name)` - Moves current task to specified section
 
 **What it does**:
+- Validates cursor is on a task BEFORE showing picker (fails early if not)
 - Gets current task
 - Moves task to specified section
 - UI picker will be added in next commit
@@ -425,7 +426,7 @@ end)
 
 ---
 
-## Commit 7: UI picker and section navigation
+## Commit 7: UI picker and section navigation ✓ COMPLETED
 
 **Purpose**: Add UI picker for sections and navigation command.
 
@@ -442,7 +443,8 @@ end)
 **What it does**:
 - Lists all sections in picker
 - On selection, moves cursor to that section's header line
-- Uses vim.ui.select (can be overridden by user with telescope/fzf)
+- Uses Snacks.picker for modern fuzzy-finding with preview
+- `move_task_to_section()` validates cursor is on task BEFORE showing picker
 
 **Tests to add** (`tests/ui_spec.lua`):
 ```lua

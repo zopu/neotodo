@@ -23,11 +23,15 @@ function M.setup(user_config)
   end, { desc = "Mark the current task as done" })
 
   vim.api.nvim_create_user_command("NeoTodoMoveTaskToSection", function(opts)
-    commands.move_task_to_section(opts.args)
+    commands.move_task_to_section(opts.args ~= "" and opts.args or nil)
   end, {
-    nargs = 1,
-    desc = "Move the current task to a specified section"
+    nargs = "?",
+    desc = "Move the current task to a specified section (shows picker if no section provided)"
   })
+
+  vim.api.nvim_create_user_command("NeoTodoNavigateToSection", function()
+    commands.navigate_to_section()
+  end, { desc = "Navigate to a section using a picker" })
 
   -- Future commits will add:
   -- - More command registration

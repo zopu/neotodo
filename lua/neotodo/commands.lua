@@ -132,20 +132,41 @@ function M.mark_as_done(bufnr)
 end
 
 --- Move the current task to a specified section
+--- If section_name is not provided, shows a picker to select the section
 --- Removes the task from its current section and adds it to the target section
 --- Creates the target section if it doesn't exist
---- @param section_name string The name of the section to move the task to
+--- @param section_name string|nil The name of the section to move the task to (nil to show picker)
 --- @param bufnr number|nil Buffer number (0 or nil for current buffer)
 function M.move_task_to_section(section_name, bufnr)
 	bufnr = bufnr or 0
 
-	if not section_name or section_name == "" then
-		vim.notify("Section name is required", vim.log.levels.ERROR)
+	-- Validate cursor is on a task BEFORE showing picker
+	-- This fails early to avoid showing picker when there's nothing to move
+	local task_text, task_line = task_mover.get_current_task(bufnr)
+	if not task_text then
+		vim.notify("No task found under cursor", vim.log.levels.WARN)
 		return
 	end
 
-	-- Get the current task under the cursor
-	local task_text, task_line = task_mover.get_current_task(bufnr)
+	-- If no section name provided, show picker
+	if not section_name or section_name == "" then
+		local ui = require("neotodo.ui")
+		local sections = parser.get_sections(bufnr)
+
+		if #sections == 0 then
+			vim.notify("No sections found in TODO file", vim.log.levels.WARN)
+			return
+		end
+
+		-- Show picker and recursively call this function with the selected section
+		ui.pick_section(sections, function(selected_section_name)
+			M.move_task_to_section(selected_section_name, bufnr)
+		end, bufnr, "Move Task to Section")
+		return
+	end
+
+	-- Get the current task under the cursor (again, in case called directly with section_name)
+	task_text, task_line = task_mover.get_current_task(bufnr)
 
 	if not task_text then
 		vim.notify("No task found under cursor", vim.log.levels.WARN)
@@ -182,6 +203,25 @@ function M.move_task_to_section(section_name, bufnr)
 			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
 		end
 	end
+end
+
+--- Navigate to a section using a picker
+--- Shows a list of all sections and jumps to the selected one
+--- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+function M.navigate_to_section(bufnr)
+	bufnr = bufnr or 0
+	local ui = require("neotodo.ui")
+	local sections = parser.get_sections(bufnr)
+
+	if #sections == 0 then
+		vim.notify("No sections found in TODO file", vim.log.levels.WARN)
+		return
+	end
+
+	-- Show picker and navigate on selection
+	ui.pick_section(sections, function(section_name, line)
+		vim.api.nvim_win_set_cursor(0, { line, 0 })
+	end, bufnr, "Navigate to Section")
 end
 
 return M
