@@ -323,7 +323,7 @@ end)
 
 ---
 
-## Commit 5: MarkAsDone command
+## Commit 5: MarkAsDone command ✓ COMPLETED
 
 **Purpose**: Implement moving a task to the "Done" section.
 

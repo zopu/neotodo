@@ -18,6 +18,10 @@ function M.setup(user_config)
     commands.add_task()
   end, { desc = "Add a new task to the New section" })
 
+  vim.api.nvim_create_user_command("NeoTodoMarkAsDone", function()
+    commands.mark_as_done()
+  end, { desc = "Mark the current task as done" })
+
   -- Future commits will add:
   -- - More command registration
   -- - Autocommand setup
