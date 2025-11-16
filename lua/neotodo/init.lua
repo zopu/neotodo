@@ -22,6 +22,13 @@ function M.setup(user_config)
     commands.mark_as_done()
   end, { desc = "Mark the current task as done" })
 
+  vim.api.nvim_create_user_command("NeoTodoMoveTaskToSection", function(opts)
+    commands.move_task_to_section(opts.args)
+  end, {
+    nargs = 1,
+    desc = "Move the current task to a specified section"
+  })
+
   -- Future commits will add:
   -- - More command registration
   -- - Autocommand setup

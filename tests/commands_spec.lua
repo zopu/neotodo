@@ -179,4 +179,89 @@ describe("commands", function()
 			assert.same(lines_before, lines_after)
 		end)
 	end)
+
+	describe("move_task_to_section", function()
+		it("moves task to specified section", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task to move",
+				"",
+				"Today:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+			commands.move_task_to_section("Today")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Task should be removed from New section
+			assert.equals("New:", lines[1])
+			assert.equals("", lines[2]) -- Task removed
+			assert.equals("Today:", lines[3])
+			assert.equals("  task to move", lines[4]) -- Moved to Today
+		end)
+
+		it("creates target section if it doesn't exist", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task to move",
+			})
+			vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+			commands.move_task_to_section("Today")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			local has_today = false
+			local today_line = 0
+			for i, line in ipairs(lines) do
+				if line == "Today:" then
+					has_today = true
+					today_line = i
+				end
+			end
+			assert.is_true(has_today)
+			-- Verify task was added to Today section
+			assert.equals("  task to move", lines[today_line + 1])
+		end)
+
+		it("does nothing when cursor is not on a task", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task",
+				"",
+				"Today:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 1, 0 }) -- On section header
+
+			local lines_before = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			commands.move_task_to_section("Today")
+			local lines_after = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+			-- Buffer should be unchanged
+			assert.same(lines_before, lines_after)
+		end)
+
+		it("handles multiple tasks and moves only the current one", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  first task",
+				"  second task to move",
+				"  third task",
+				"",
+				"Today:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 3, 0 }) -- On second task
+
+			commands.move_task_to_section("Today")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			assert.equals("  first task", lines[2])
+			assert.equals("  third task", lines[3])
+			assert.equals("Today:", lines[5])
+			assert.equals("  second task to move", lines[6])
+		end)
+	end)
 end)

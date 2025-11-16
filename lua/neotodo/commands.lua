@@ -131,4 +131,57 @@ function M.mark_as_done(bufnr)
 	end
 end
 
+--- Move the current task to a specified section
+--- Removes the task from its current section and adds it to the target section
+--- Creates the target section if it doesn't exist
+--- @param section_name string The name of the section to move the task to
+--- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+function M.move_task_to_section(section_name, bufnr)
+	bufnr = bufnr or 0
+
+	if not section_name or section_name == "" then
+		vim.notify("Section name is required", vim.log.levels.ERROR)
+		return
+	end
+
+	-- Get the current task under the cursor
+	local task_text, task_line = task_mover.get_current_task(bufnr)
+
+	if not task_text then
+		vim.notify("No task found under cursor", vim.log.levels.WARN)
+		return
+	end
+
+	-- Delete the task from its current location
+	task_mover.delete_task_line(task_line, bufnr)
+
+	-- Add the task to the specified section
+	task_mover.add_task_to_section(section_name, task_text, bufnr)
+
+	-- Position cursor at the next task or stay in the current section
+	-- After deletion, the line that was below the deleted task is now at task_line
+	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+	-- Try to find the next task line starting from the current position
+	local next_task_line = nil
+	for i = task_line, #lines do
+		if parser.is_task_line(lines[i]) then
+			next_task_line = i
+			break
+		end
+	end
+
+	-- If we found a next task, move cursor there
+	-- Otherwise, stay at the current line (which might be a blank line or section header)
+	if next_task_line then
+		vim.api.nvim_win_set_cursor(0, { next_task_line, 0 })
+	else
+		-- No next task found, try to stay in a valid position
+		local valid_line = math.min(task_line, #lines)
+		if valid_line > 0 then
+			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
+		end
+	end
+end
+
 return M

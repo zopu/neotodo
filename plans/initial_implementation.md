@@ -385,7 +385,7 @@ end)
 
 ---
 
-## Commit 6: MoveTaskToSection command
+## Commit 6: MoveTaskToSection command ✓ COMPLETED
 
 **Purpose**: Allow moving a task to any section (without picker UI for now).
 
