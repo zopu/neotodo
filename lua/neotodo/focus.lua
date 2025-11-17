@@ -22,162 +22,165 @@ function M.is_focus_mode_enabled()
   return vim.b.neotodo_focus_mode == true
 end
 
--- Fold expression function for focus mode
--- Returns fold level for each line
-local function focus_fold_expr(lnum)
-  local line = vim.fn.getline(lnum)
-
-  -- Check if this is a section header
-  if parser.is_section_header(line) then
-    local section_name = line:match("^(.-):%s*$")
-    if section_name and M.should_fold_section(section_name) then
-      return ">1"  -- Start a fold
-    else
-      return "0"   -- No fold for focused sections
-    end
-  end
-
-  -- For non-header lines, check if we're in a folded section
-  local section = parser.get_section_at_line(lnum)
-  if section and M.should_fold_section(section) then
-    return "1"  -- Continue the fold
-  end
-
-  return "0"  -- No fold
-end
-
--- Hide section headers using extmarks
--- Uses conceal to make foldable section headers invisible
-local function hide_section_headers(bufnr)
+-- Get filtered buffer content (only visible sections)
+local function get_filtered_content(bufnr)
   bufnr = bufnr or 0
-
-  -- Get all sections in the buffer
   local sections = parser.get_sections(bufnr)
+  local filtered_lines = {}
 
-  -- For each section that should be folded, hide its header
   for _, section in ipairs(sections) do
-    if M.should_fold_section(section.name) then
-      -- Use extmark to conceal the section header line
-      -- line is 1-indexed, but extmarks use 0-indexed rows
-      local row = section.line - 1
-
-      -- Get the actual line to determine its length
-      local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
-      local line_length = #line
-
-      -- Conceal the entire line
-      vim.api.nvim_buf_set_extmark(bufnr, ns_id, row, 0, {
-        end_row = row + 1,      -- End at the next line (covers the whole line)
-        end_col = 0,            -- End at column 0 of next line
-        conceal = '',           -- Conceal with empty string (makes it invisible)
-      })
+    if not M.should_fold_section(section.name) then
+      -- This section should be visible
+      local start_line, end_line = parser.get_section_range(section.name, bufnr)
+      if start_line and end_line then
+        local section_lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+        for _, line in ipairs(section_lines) do
+          table.insert(filtered_lines, line)
+        end
+      end
     end
   end
+
+  return filtered_lines
 end
 
--- Clear all section header extmarks
-local function clear_section_headers(bufnr)
-  bufnr = bufnr or 0
-  vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
-end
-
--- Apply focus mode fold settings to current window
-local function apply_focus_folds(bufnr)
-  bufnr = bufnr or 0
-
-  -- Set up folding
-  vim.wo.foldmethod = "expr"
-  vim.wo.foldexpr = "v:lua.require('neotodo.focus')._fold_expr(v:lnum)"
-  vim.wo.foldenable = true
-  vim.wo.foldlevel = 0  -- Close all folds by default
-
-  -- Enable concealment to hide section headers
-  vim.wo.conceallevel = 3  -- Completely hide concealed text
-  vim.wo.concealcursor = ''  -- Don't reveal when cursor is on the line
-
-  -- Force fold update
-  vim.cmd('normal! zx')
-
-  -- Save current cursor position
-  local saved_cursor = vim.api.nvim_win_get_cursor(0)
-
-  -- Close only the sections that should be folded
+-- Map cursor position from original buffer to focus buffer
+local function map_cursor_to_focus(bufnr, cursor_pos)
+  local row, col = cursor_pos[1], cursor_pos[2]
   local sections = parser.get_sections(bufnr)
+  local focus_row = 1
+
+  -- Find which section the cursor is in
+  local current_section = parser.get_section_at_line(row, bufnr)
+
+  -- Count lines in visible sections before the cursor
   for _, section in ipairs(sections) do
-    if M.should_fold_section(section.name) then
-      vim.fn.cursor(section.line, 1)
-      vim.cmd('normal! zc')
+    if not M.should_fold_section(section.name) then
+      local start_line, end_line = parser.get_section_range(section.name, bufnr)
+      if start_line and end_line then
+        if section.name == current_section and row >= start_line and row <= end_line then
+          -- Cursor is in this visible section
+          focus_row = focus_row + (row - start_line)
+          return { focus_row, col }
+        elseif end_line < row then
+          -- Add this section's lines to the count
+          focus_row = focus_row + (end_line - start_line + 1)
+        end
+      end
     end
   end
 
-  -- Restore cursor position
-  vim.api.nvim_win_set_cursor(0, saved_cursor)
+  -- Default to first line if mapping fails
+  return { 1, 0 }
+end
 
-  -- Hide section headers using extmarks
-  hide_section_headers(bufnr)
+-- Map cursor position from focus buffer back to original buffer
+local function map_cursor_from_focus(original_bufnr, focus_row)
+  local sections = parser.get_sections(original_bufnr)
+  local current_focus_row = 1
+
+  -- Find which visible section the cursor is in
+  for _, section in ipairs(sections) do
+    if not M.should_fold_section(section.name) then
+      local start_line, end_line = parser.get_section_range(section.name, original_bufnr)
+      if start_line and end_line then
+        local section_length = end_line - start_line + 1
+        if focus_row <= current_focus_row + section_length - 1 then
+          -- Cursor is in this section
+          local offset = focus_row - current_focus_row
+          return start_line + offset
+        end
+        current_focus_row = current_focus_row + section_length
+      end
+    end
+  end
+
+  -- Default to first line if mapping fails
+  return 1
 end
 
 -- Enable focus mode for the current buffer
 function M.focus_mode_enable()
-  local bufnr = vim.api.nvim_get_current_buf()
+  local original_bufnr = vim.api.nvim_get_current_buf()
 
-  -- Mark focus mode as enabled for this buffer
-  vim.b.neotodo_focus_mode = true
+  -- Get filtered content (only visible sections)
+  local filtered_lines = get_filtered_content(original_bufnr)
 
-  -- Apply the fold settings and hide headers
-  apply_focus_folds(bufnr)
+  -- Get current cursor position
+  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+
+  -- Create a new scratch buffer
+  local focus_bufnr = vim.api.nvim_create_buf(false, true)
+
+  -- Set scratch buffer options
+  vim.bo[focus_bufnr].buftype = 'nofile'
+  vim.bo[focus_bufnr].bufhidden = 'wipe'
+  vim.bo[focus_bufnr].filetype = 'neotodo'
+  vim.bo[focus_bufnr].swapfile = false
+
+  -- Set buffer name
+  local original_name = vim.api.nvim_buf_get_name(original_bufnr)
+  local focus_name = original_name .. ' [Focus]'
+  vim.api.nvim_buf_set_name(focus_bufnr, focus_name)
+
+  -- Write filtered content to scratch buffer
+  vim.api.nvim_buf_set_lines(focus_bufnr, 0, -1, false, filtered_lines)
+
+  -- Make buffer read-only
+  vim.bo[focus_bufnr].modifiable = false
+
+  -- Store buffer references
+  vim.api.nvim_buf_set_var(focus_bufnr, 'neotodo_original_bufnr', original_bufnr)
+  vim.api.nvim_buf_set_var(original_bufnr, 'neotodo_focus_bufnr', focus_bufnr)
+
+  -- Mark focus mode as enabled
+  vim.api.nvim_buf_set_var(focus_bufnr, 'neotodo_focus_mode', true)
+
+  -- Set up keybinds manually since focus buffer name doesn't match TODO.txt pattern
+  local keybinds = require('neotodo.keybinds')
+  keybinds.setup_buffer_keybinds(focus_bufnr)
+
+  -- Switch to focus buffer
+  vim.api.nvim_win_set_buf(0, focus_bufnr)
+
+  -- Map and set cursor position
+  local focus_cursor = map_cursor_to_focus(original_bufnr, cursor_pos)
+  vim.api.nvim_win_set_cursor(0, focus_cursor)
 end
 
 -- Disable focus mode for the current buffer
 function M.focus_mode_disable()
-  local bufnr = vim.api.nvim_get_current_buf()
+  local focus_bufnr = vim.api.nvim_get_current_buf()
 
-  -- Clear extmarks that hide section headers
-  clear_section_headers(bufnr)
-
-  -- Clear focus mode flag
-  vim.b.neotodo_focus_mode = false
-
-  -- Reset to normal folding
-  vim.wo.foldmethod = "manual"
-  vim.wo.foldenable = false
-  vim.wo.foldlevel = 99
-
-  -- Reset concealment
-  vim.wo.conceallevel = 0
-  vim.wo.concealcursor = ''
-
-  -- Unfold everything
-  vim.cmd('normal! zR')
-end
-
--- Called when entering a TODO.txt buffer
--- Applies focus mode settings if enabled for this buffer
-function M.on_buf_enter()
-  if M.is_focus_mode_enabled() then
-    local bufnr = vim.api.nvim_get_current_buf()
-    apply_focus_folds(bufnr)
+  -- Get original buffer number
+  local ok, original_bufnr = pcall(vim.api.nvim_buf_get_var, focus_bufnr, 'neotodo_original_bufnr')
+  if not ok or not vim.api.nvim_buf_is_valid(original_bufnr) then
+    -- If we can't find the original buffer, just return
+    return
   end
+
+  -- Get current cursor position in focus buffer
+  local focus_cursor = vim.api.nvim_win_get_cursor(0)
+  local focus_row = focus_cursor[1]
+
+  -- Map cursor position back to original buffer
+  local original_row = map_cursor_from_focus(original_bufnr, focus_row)
+
+  -- Switch back to original buffer
+  vim.api.nvim_win_set_buf(0, original_bufnr)
+
+  -- Set cursor position in original buffer
+  local original_col = focus_cursor[2]
+  pcall(vim.api.nvim_win_set_cursor, 0, { original_row, original_col })
+
+  -- Focus buffer will be auto-deleted due to bufhidden=wipe
 end
 
--- Called when leaving a TODO.txt buffer
--- Resets window fold settings to defaults
-function M.on_buf_leave()
-  -- Only reset if we had focus mode enabled
-  if M.is_focus_mode_enabled() then
-    local bufnr = vim.api.nvim_get_current_buf()
+-- Called when entering a TODO.txt buffer (no-op for scratch buffer approach)
+function M.on_buf_enter() end
 
-    -- Clear extmarks when leaving (they'll be reapplied on BufEnter)
-    clear_section_headers(bufnr)
-
-    -- Reset window fold settings to sensible defaults for other buffers
-    vim.wo.foldmethod = "manual"
-    vim.wo.foldenable = false
-    vim.wo.foldlevel = 99
-    vim.wo.conceallevel = 0
-    vim.wo.concealcursor = ''
-  end
-end
+-- Called when leaving a TODO.txt buffer (no-op for scratch buffer approach)
+function M.on_buf_leave() end
 
 -- Toggle focus mode
 function M.focus_mode_toggle()
@@ -186,11 +189,6 @@ function M.focus_mode_toggle()
   else
     M.focus_mode_enable()
   end
-end
-
--- Fold expression function (exposed for foldexpr)
-function M._fold_expr(lnum)
-  return focus_fold_expr(lnum)
 end
 
 return M
