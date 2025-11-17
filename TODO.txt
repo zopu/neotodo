@@ -1,0 +1,6 @@
+New:
+  Better hiding in focus mode
+  Mark as done shouldn't move the cursor
+
+Now:
+
