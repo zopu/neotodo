@@ -304,6 +304,144 @@ describe("commands", function()
 		end)
 	end)
 
+	describe("navigate_to_section", function()
+		-- Helper to mock ui.pick_section
+		local function mock_pick_section_and_call(section_name, section_line)
+			local ui = require("neotodo.ui")
+			local original_pick_section = ui.pick_section
+
+			-- Mock pick_section to immediately invoke callback
+			ui.pick_section = function(sections, callback, bufnr, prompt)
+				callback(section_name, section_line)
+			end
+
+			-- Restore original after test
+			return function()
+				ui.pick_section = original_pick_section
+			end
+		end
+
+		it("positions cursor on first task when section has tasks", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  first task",
+				"  second task",
+				"",
+				"Today:",
+				"  today task",
+				"",
+				"Done:",
+			})
+
+			-- Mock pick_section to select "Today" section (line 5)
+			local restore = mock_pick_section_and_call("Today", 5)
+
+			commands.navigate_to_section()
+
+			-- Cursor should be on the first task in Today section (line 6)
+			local cursor = vim.api.nvim_win_get_cursor(0)
+			assert.equals(6, cursor[1])
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			assert.equals("  today task", lines[cursor[1]])
+
+			-- Cursor should be at end of line
+			assert.equals(#"  today task", cursor[2])
+
+			restore()
+		end)
+
+		it("positions cursor on section header when section is empty", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  first task",
+				"",
+				"Today:",
+				"",
+				"Done:",
+			})
+
+			-- Mock pick_section to select "Today" section (line 4)
+			local restore = mock_pick_section_and_call("Today", 4)
+
+			commands.navigate_to_section()
+
+			-- Cursor should be on the section header (line 4) since section is empty
+			local cursor = vim.api.nvim_win_get_cursor(0)
+			assert.equals(4, cursor[1])
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			assert.equals("Today:", lines[cursor[1]])
+
+			-- Cursor should be at end of line
+			assert.equals(#"Today:", cursor[2])
+
+			restore()
+		end)
+
+		it("positions cursor on first task when section has blank lines before tasks", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  first task",
+				"",
+				"Today:",
+				"",
+				"  today task after blank",
+				"",
+				"Done:",
+			})
+
+			-- Mock pick_section to select "Today" section (line 4)
+			local restore = mock_pick_section_and_call("Today", 4)
+
+			commands.navigate_to_section()
+
+			-- Cursor should be on the first task (line 6), skipping blank line
+			local cursor = vim.api.nvim_win_get_cursor(0)
+			assert.equals(6, cursor[1])
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			assert.equals("  today task after blank", lines[cursor[1]])
+
+			-- Cursor should be at end of line
+			assert.equals(#"  today task after blank", cursor[2])
+
+			restore()
+		end)
+
+		it("positions cursor on first task in section with multiple tasks", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  new task 1",
+				"  new task 2",
+				"  new task 3",
+				"",
+				"Done:",
+			})
+
+			-- Mock pick_section to select "New" section (line 1)
+			local restore = mock_pick_section_and_call("New", 1)
+
+			commands.navigate_to_section()
+
+			-- Cursor should be on the first task (line 2)
+			local cursor = vim.api.nvim_win_get_cursor(0)
+			assert.equals(2, cursor[1])
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			assert.equals("  new task 1", lines[cursor[1]])
+
+			-- Cursor should be at end of line
+			assert.equals(#"  new task 1", cursor[2])
+
+			restore()
+		end)
+	end)
+
 	describe("move_task_to_section", function()
 		it("moves task to specified section", function()
 			vim.cmd("enew")

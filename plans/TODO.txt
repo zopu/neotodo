@@ -5,11 +5,15 @@ Lower Priority:
   Focus mode: mark as done
   Focus mode: Graceful error for attempted editing
 
+Clean up:
+  Test output is noisy - hard to tell at a glance that everything passed
+
 Medium Priority:
   Focus mode: use color for prominence
-  Cursor should move to first task in section rather than heading on navigation
   Move selection of tasks
   On movement of task, cursor should stay in place
+  Move task and follow it to the new location
+  Turn off spelling suggestions in todo files
 
 Top Priority:
 
@@ -20,3 +24,4 @@ Done:
   Add a "move to now" command
   Focus mode should show "Top Priority" by default
   Mark as done shouldn't move the cursor
+  Cursor should move to first task in section rather than heading on navigation

@@ -219,6 +219,7 @@ end
 
 --- Navigate to a section using a picker
 --- Shows a list of all sections and jumps to the selected one
+--- Positions cursor on the first task in the section if available, otherwise on the header
 --- @param bufnr number|nil Buffer number (0 or nil for current buffer)
 function M.navigate_to_section(bufnr)
 	bufnr = bufnr or 0
@@ -232,7 +233,40 @@ function M.navigate_to_section(bufnr)
 
 	-- Show picker and navigate on selection
 	ui.pick_section(sections, function(section_name, line)
-		vim.api.nvim_win_set_cursor(0, { line, 0 })
+		-- Get the section range to find the first task
+		local start_line, end_line = parser.get_section_range(section_name, bufnr)
+
+		if not start_line then
+			-- Fallback to header if range not found
+			vim.api.nvim_win_set_cursor(0, { line, 0 })
+			return
+		end
+
+		-- Search for the first task in this section
+		-- Note: nvim_buf_get_lines uses 0-indexed params, but start_line/end_line are 1-indexed
+		local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+		local first_task_line = nil
+
+		-- Start from index 2 (skip the header which is at index 1)
+		for i = 2, #lines do
+			if parser.is_task_line(lines[i]) then
+				-- Found the first task, calculate actual line number
+				first_task_line = start_line + i - 1
+				break
+			end
+		end
+
+		if first_task_line then
+			-- Move to first task at end of line
+			local line_content = vim.api.nvim_buf_get_lines(bufnr, first_task_line - 1, first_task_line, false)[1]
+			local col = #line_content
+			vim.api.nvim_win_set_cursor(0, { first_task_line, col })
+		else
+			-- No tasks found, stay on section header at end of line
+			local line_content = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1]
+			local col = #line_content
+			vim.api.nvim_win_set_cursor(0, { line, col })
+		end
 	end, bufnr, "Navigate to Section")
 end
 
