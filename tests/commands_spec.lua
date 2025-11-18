@@ -180,6 +180,130 @@ describe("commands", function()
 		end)
 	end)
 
+	describe("move_to_now", function()
+		it("moves task to Now section", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task to move",
+				"",
+				"Now:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+			commands.move_to_now()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Task should be removed from New section
+			assert.equals("New:", lines[1])
+			assert.equals("", lines[2]) -- Task removed, blank line remains
+			assert.equals("Now:", lines[3])
+			assert.equals("  task to move", lines[4]) -- Moved to Now
+		end)
+
+		it("creates Now section if missing", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task to move",
+			})
+			vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+			commands.move_to_now()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			local has_now = false
+			local now_line = 0
+			for i, line in ipairs(lines) do
+				if line == "Now:" then
+					has_now = true
+					now_line = i
+				end
+			end
+			assert.is_true(has_now)
+			-- Verify task was added to Now section
+			assert.equals("  task to move", lines[now_line + 1])
+		end)
+
+		it("handles cursor positioning after moving task", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task to move",
+				"  next task",
+				"",
+				"Now:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+			commands.move_to_now()
+
+			-- Cursor should move to the next task
+			local cursor = vim.api.nvim_win_get_cursor(0)
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			assert.equals("  next task", lines[cursor[1]])
+		end)
+
+		it("does nothing when cursor is not on a task", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task",
+				"",
+				"Now:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 1, 0 }) -- On section header
+
+			local lines_before = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			commands.move_to_now()
+			local lines_after = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+			-- Buffer should be unchanged
+			assert.same(lines_before, lines_after)
+		end)
+
+		it("handles moving from multiple tasks in a section", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  first task",
+				"  second task to move",
+				"  third task",
+				"",
+				"Now:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 3, 0 }) -- On second task
+
+			commands.move_to_now()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			assert.equals("  first task", lines[2])
+			assert.equals("  third task", lines[3])
+			assert.equals("Now:", lines[5])
+			assert.equals("  second task to move", lines[6])
+		end)
+
+		it("moves task from Done section to Now", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"Done:",
+				"  completed task to reactivate",
+				"",
+				"Now:",
+			})
+			vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+			commands.move_to_now()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Task should be removed from Done section
+			assert.equals("Done:", lines[1])
+			assert.equals("", lines[2])
+			assert.equals("Now:", lines[3])
+			assert.equals("  completed task to reactivate", lines[4])
+		end)
+	end)
+
 	describe("move_task_to_section", function()
 		it("moves task to specified section", function()
 			vim.cmd("enew")

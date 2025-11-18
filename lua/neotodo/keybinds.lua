@@ -55,6 +55,16 @@ function M.setup_buffer_keybinds(bufnr)
     })
   end
 
+  if keybinds.move_to_now then
+    vim.keymap.set('n', keybinds.move_to_now, function()
+      commands.move_to_now()
+    end, {
+      buffer = bufnr,
+      desc = 'Move current task to Now section',
+      silent = true,
+    })
+  end
+
   if keybinds.move_to_section then
     vim.keymap.set('n', keybinds.move_to_section, function()
       commands.navigate_to_section()

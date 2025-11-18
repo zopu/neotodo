@@ -6,6 +6,7 @@ M.defaults = {
 	keybinds = {
 		add_task = nil, -- Add new task to "New" section
 		mark_done = nil, -- Mark task as done
+		move_to_now = nil, -- Move task to "Now" section
 		move_to_section = nil, -- Navigate to section (with picker)
 		move_task = nil, -- Move task to section (with picker)
 		focus_enable = nil, -- Enable focus mode

@@ -1,13 +1,22 @@
 New:
-  Mark as done shouldn't move the cursor
-  Cursor should move to first task in section rather than heading on navigation
-  Add a "move to now" command
+
+Lower Priority:
   Focus mode: move
   Focus mode: mark as done
   Focus mode: Graceful error for attempted editing
+
+Medium Priority:
   Focus mode: use color for prominence
+  Cursor should move to first task in section rather than heading on navigation
+  Move selection of tasks
+  On movement of task, cursor should stay in place
+
+Top Priority:
+  Mark as done shouldn't move the cursor
+  Focus mode should show "Top Priority"
 
 Now:
 
 Done:
   Better hiding in focus mode
+  Add a "move to now" command

@@ -96,6 +96,7 @@ describe("keybinds", function()
     config.options.keybinds = {
       add_task = '<leader>ta',
       mark_done = '<leader>td',
+      move_to_now = '<leader>tn',
       move_to_section = '<leader>ts',
       move_task = '<leader>tm',
       focus_enable = '<leader>fe',
@@ -111,6 +112,7 @@ describe("keybinds", function()
     local keybinds_found = {
       add_task = false,
       mark_done = false,
+      move_to_now = false,
       move_to_section = false,
       move_task = false,
       focus_enable = false,
@@ -123,6 +125,7 @@ describe("keybinds", function()
       if map.desc then
         if map.desc:match('Add new task') then keybinds_found.add_task = true end
         if map.desc:match('Mark current task') then keybinds_found.mark_done = true end
+        if map.desc:match('Move current task to Now') then keybinds_found.move_to_now = true end
         if map.desc:match('Navigate to section') then keybinds_found.move_to_section = true end
         if map.desc:match('Move task to section') then keybinds_found.move_task = true end
         if map.desc:match('Enable focus mode') then keybinds_found.focus_enable = true end
