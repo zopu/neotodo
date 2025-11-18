@@ -137,41 +137,7 @@ end
 --- Creates the "Done:" section if it doesn't exist
 --- @param bufnr number|nil Buffer number (0 or nil for current buffer)
 function M.mark_as_done(bufnr)
-	bufnr = bufnr or 0
-
-	-- Get the current task under the cursor
-	local task_text, task_line = task_mover.get_current_task(bufnr)
-
-	if not task_text then
-		vim.notify("No task found under cursor", vim.log.levels.WARN)
-		return
-	end
-
-	-- Determine which section the task is in before deletion
-	local current_section = parser.get_section_at_line(task_line, bufnr)
-	local section_start, section_end = nil, nil
-
-	if current_section then
-		section_start, section_end = parser.get_section_range(current_section, bufnr)
-	end
-
-	-- Delete the task from its current location
-	task_mover.delete_task_line(task_line, bufnr)
-
-	-- Add the task to the "Done" section
-	task_mover.add_task_to_section("Done", task_text, bufnr)
-
-	-- Position cursor intelligently in the original section
-	if section_start then
-		position_cursor_after_task_move(task_line, section_start, section_end, bufnr)
-	else
-		-- No section found (shouldn't happen), fall back to staying at current position
-		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-		local valid_line = math.min(task_line, #lines)
-		if valid_line > 0 then
-			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
-		end
-	end
+	M.move_task_to_section("Done", bufnr)
 end
 
 --- Move the current task to the "Now" section
@@ -179,41 +145,7 @@ end
 --- Creates the "Now:" section if it doesn't exist
 --- @param bufnr number|nil Buffer number (0 or nil for current buffer)
 function M.move_to_now(bufnr)
-	bufnr = bufnr or 0
-
-	-- Get the current task under the cursor
-	local task_text, task_line = task_mover.get_current_task(bufnr)
-
-	if not task_text then
-		vim.notify("No task found under cursor", vim.log.levels.WARN)
-		return
-	end
-
-	-- Determine which section the task is in before deletion
-	local current_section = parser.get_section_at_line(task_line, bufnr)
-	local section_start, section_end = nil, nil
-
-	if current_section then
-		section_start, section_end = parser.get_section_range(current_section, bufnr)
-	end
-
-	-- Delete the task from its current location
-	task_mover.delete_task_line(task_line, bufnr)
-
-	-- Add the task to the "Now" section
-	task_mover.add_task_to_section("Now", task_text, bufnr)
-
-	-- Position cursor intelligently in the original section
-	if section_start then
-		position_cursor_after_task_move(task_line, section_start, section_end, bufnr)
-	else
-		-- No section found (shouldn't happen), fall back to staying at current position
-		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-		local valid_line = math.min(task_line, #lines)
-		if valid_line > 0 then
-			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
-		end
-	end
+	M.move_task_to_section("Now", bufnr)
 end
 
 --- Move the current task to a specified section
