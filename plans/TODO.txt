@@ -13,10 +13,10 @@ Medium Priority:
 
 Top Priority:
   Mark as done shouldn't move the cursor
-  Focus mode should show "Top Priority"
 
 Now:
 
 Done:
   Better hiding in focus mode
   Add a "move to now" command
+  Focus mode should show "Top Priority" by default

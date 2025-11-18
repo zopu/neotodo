@@ -21,7 +21,7 @@ M.defaults = {
 	task_indent = 2,
 
 	-- Sections that remain visible in focus mode
-	focus_sections = { "Now", "Today", "Top This Week" },
+	focus_sections = { "Now", "Today", "Top This Week", "Top Priority" },
 }
 
 -- Current configuration (starts as defaults)
