@@ -5,7 +5,9 @@ New:
   Focus mode: move
   Focus mode: mark as done
   Focus mode: Graceful error for attempted editing
+  Focus mode: use color for prominence
 
 Now:
-  Better hiding in focus mode
 
+Done:
+  Better hiding in focus mode
