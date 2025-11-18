@@ -140,12 +140,26 @@ function M.mark_as_done(bufnr)
 	M.move_task_to_section("Done", bufnr)
 end
 
+--- Mark selected tasks (visual mode) as done by moving them to the "Done" section
+--- All selected tasks must be in the same section
+--- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+function M.mark_as_done_visual(bufnr)
+	M.move_tasks_to_section_visual("Done", bufnr)
+end
+
 --- Move the current task to the "Now" section
 --- Removes the task from its current section and adds it to the "Now" section
 --- Creates the "Now:" section if it doesn't exist
 --- @param bufnr number|nil Buffer number (0 or nil for current buffer)
 function M.move_to_now(bufnr)
 	M.move_task_to_section("Now", bufnr)
+end
+
+--- Move selected tasks (visual mode) to the "Now" section
+--- All selected tasks must be in the same section
+--- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+function M.move_to_now_visual(bufnr)
+	M.move_tasks_to_section_visual("Now", bufnr)
 end
 
 --- Move the current task to a specified section
@@ -215,6 +229,89 @@ function M.move_task_to_section(section_name, bufnr)
 			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
 		end
 	end
+end
+
+--- Move selected tasks (visual mode) to a specified section
+--- If section_name is not provided, shows a picker to select the section
+--- All selected tasks must be in the same section
+--- @param section_name string|nil The name of the section to move the tasks to (nil to show picker)
+--- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+function M.move_tasks_to_section_visual(section_name, bufnr)
+	bufnr = bufnr or 0
+
+	-- Get the visual selection tasks
+	local tasks = task_mover.get_visual_selection_tasks(bufnr)
+
+	if not tasks or #tasks == 0 then
+		vim.notify("No tasks found in selection", vim.log.levels.WARN)
+		return
+	end
+
+	-- Check if all tasks are from the same section (already validated by get_visual_selection_tasks)
+	-- If it returned nil, it means the selection spans multiple sections
+
+	-- If no section name provided, show picker
+	if not section_name or section_name == "" then
+		local ui = require("neotodo.ui")
+		local sections = parser.get_sections(bufnr)
+
+		if #sections == 0 then
+			vim.notify("No sections found in TODO file", vim.log.levels.WARN)
+			return
+		end
+
+		-- Show picker and recursively call this function with the selected section
+		ui.pick_section(sections, function(selected_section_name)
+			M.move_tasks_to_section_visual(selected_section_name, bufnr)
+		end, bufnr, "Move Tasks to Section")
+		return
+	end
+
+	-- Re-get tasks in case called directly with section_name (picker callback)
+	tasks = task_mover.get_visual_selection_tasks(bufnr)
+	if not tasks or #tasks == 0 then
+		vim.notify("No tasks found in selection", vim.log.levels.WARN)
+		return
+	end
+
+	-- Determine which section the tasks are in before deletion
+	local first_task_line = tasks[1].line
+	local current_section = parser.get_section_at_line(first_task_line, bufnr)
+	local section_start, section_end = nil, nil
+
+	if current_section then
+		section_start, section_end = parser.get_section_range(current_section, bufnr)
+	end
+
+	-- Collect task texts and line numbers
+	local task_texts = {}
+	local line_nums = {}
+	for _, task in ipairs(tasks) do
+		table.insert(task_texts, task.text)
+		table.insert(line_nums, task.line)
+	end
+
+	-- Delete the tasks from their current location (in reverse order to avoid line shifts)
+	task_mover.delete_task_lines(line_nums, bufnr)
+
+	-- Add all tasks to the specified section
+	task_mover.add_tasks_to_section(section_name, task_texts, bufnr)
+
+	-- Position cursor intelligently in the original section
+	-- Adjust section_end for the number of deleted tasks
+	if section_start then
+		local adjusted_section_end = section_end - #tasks + 1
+		position_cursor_after_task_move(first_task_line, section_start, adjusted_section_end, bufnr)
+	else
+		-- No section found (shouldn't happen), fall back to staying at current position
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		local valid_line = math.min(first_task_line, #lines)
+		if valid_line > 0 then
+			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
+		end
+	end
+
+	vim.notify(string.format("Moved %d task(s) to %s", #tasks, section_name), vim.log.levels.INFO)
 end
 
 --- Navigate to a section using a picker

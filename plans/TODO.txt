@@ -11,7 +11,6 @@ Clean up:
 
 Medium Priority:
   Focus mode: use color for prominence
-  Move selection of tasks
 
 Top Priority:
 
@@ -24,3 +23,4 @@ Done:
   Focus mode should show "Top Priority" by default
   Cursor should move to first task in section rather than heading on navigation
   Turn off spelling suggestions in todo files
+  Move selection of tasks

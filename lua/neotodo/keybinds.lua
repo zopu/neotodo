@@ -46,6 +46,7 @@ function M.setup_buffer_keybinds(bufnr)
   end
 
   if keybinds.mark_done then
+    -- Normal mode: mark single task as done
     vim.keymap.set('n', keybinds.mark_done, function()
       commands.mark_as_done()
     end, {
@@ -53,14 +54,33 @@ function M.setup_buffer_keybinds(bufnr)
       desc = 'Mark current task as done',
       silent = true,
     })
+
+    -- Visual mode: mark selected tasks as done
+    vim.keymap.set('v', keybinds.mark_done, function()
+      commands.mark_as_done_visual()
+    end, {
+      buffer = bufnr,
+      desc = 'Mark selected tasks as done',
+      silent = true,
+    })
   end
 
   if keybinds.move_to_now then
+    -- Normal mode: move single task to Now
     vim.keymap.set('n', keybinds.move_to_now, function()
       commands.move_to_now()
     end, {
       buffer = bufnr,
       desc = 'Move current task to Now section',
+      silent = true,
+    })
+
+    -- Visual mode: move selected tasks to Now
+    vim.keymap.set('v', keybinds.move_to_now, function()
+      commands.move_to_now_visual()
+    end, {
+      buffer = bufnr,
+      desc = 'Move selected tasks to Now section',
       silent = true,
     })
   end
@@ -76,11 +96,21 @@ function M.setup_buffer_keybinds(bufnr)
   end
 
   if keybinds.move_task then
+    -- Normal mode: move single task
     vim.keymap.set('n', keybinds.move_task, function()
       commands.move_task_to_section()
     end, {
       buffer = bufnr,
       desc = 'Move task to section',
+      silent = true,
+    })
+
+    -- Visual mode: move selected tasks
+    vim.keymap.set('v', keybinds.move_task, function()
+      commands.move_tasks_to_section_visual()
+    end, {
+      buffer = bufnr,
+      desc = 'Move selected tasks to section',
       silent = true,
     })
   end

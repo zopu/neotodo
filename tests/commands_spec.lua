@@ -180,6 +180,146 @@ describe("commands", function()
 		end)
 	end)
 
+	describe("mark_as_done_visual", function()
+		it("moves multiple selected tasks to Done section", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"  task 2",
+				"  task 3",
+				"",
+				"Done:",
+			})
+
+			-- Set visual selection marks for lines 2-4
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 4, 0, {})
+
+			commands.mark_as_done_visual()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Tasks should be removed from New section
+			assert.equals("New:", lines[1])
+			assert.equals("", lines[2]) -- Blank line remains
+			assert.equals("Done:", lines[3])
+			-- All tasks moved to Done
+			assert.equals("  task 1", lines[4])
+			assert.equals("  task 2", lines[5])
+			assert.equals("  task 3", lines[6])
+		end)
+
+		it("creates Done section if missing", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"  task 2",
+			})
+
+			-- Set visual selection marks
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 3, 0, {})
+
+			commands.mark_as_done_visual()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			local has_done = false
+			local done_line = 0
+			for i, line in ipairs(lines) do
+				if line == "Done:" then
+					has_done = true
+					done_line = i
+				end
+			end
+			assert.is_true(has_done)
+			-- Verify tasks were added to Done section
+			assert.equals("  task 1", lines[done_line + 1])
+			assert.equals("  task 2", lines[done_line + 2])
+		end)
+	end)
+
+	describe("move_to_now_visual", function()
+		it("moves multiple selected tasks to Now section", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"  task 2",
+				"  task 3",
+				"",
+				"Now:",
+			})
+
+			-- Set visual selection marks for lines 2-4
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 4, 0, {})
+
+			commands.move_to_now_visual()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Tasks should be removed from New section
+			assert.equals("New:", lines[1])
+			assert.equals("", lines[2]) -- Blank line remains
+			assert.equals("Now:", lines[3])
+			-- All tasks moved to Now
+			assert.equals("  task 1", lines[4])
+			assert.equals("  task 2", lines[5])
+			assert.equals("  task 3", lines[6])
+		end)
+
+		it("creates Now section if missing", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"  task 2",
+			})
+
+			-- Set visual selection marks
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 3, 0, {})
+
+			commands.move_to_now_visual()
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			local has_now = false
+			local now_line = 0
+			for i, line in ipairs(lines) do
+				if line == "Now:" then
+					has_now = true
+					now_line = i
+				end
+			end
+			assert.is_true(has_now)
+			-- Verify tasks were added to Now section
+			assert.equals("  task 1", lines[now_line + 1])
+			assert.equals("  task 2", lines[now_line + 2])
+		end)
+
+		it("does nothing when selection spans multiple sections", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"",
+				"Done:",
+				"  task 2",
+			})
+
+			-- Set visual selection marks spanning both sections
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 5, 0, {})
+
+			local lines_before = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			commands.move_to_now_visual()
+			local lines_after = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+			-- Buffer should be unchanged
+			assert.same(lines_before, lines_after)
+		end)
+	end)
+
 	describe("move_to_now", function()
 		it("moves task to Now section", function()
 			vim.cmd("enew")
@@ -524,6 +664,185 @@ describe("commands", function()
 			assert.equals("  third task", lines[3])
 			assert.equals("Today:", lines[5])
 			assert.equals("  second task to move", lines[6])
+		end)
+	end)
+
+	describe("move_tasks_to_section_visual", function()
+		it("moves multiple selected tasks to specified section", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"  task 2",
+				"  task 3",
+				"",
+				"Today:",
+			})
+
+			-- Set visual selection marks for lines 2-4
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 4, 0, {})
+
+			commands.move_tasks_to_section_visual("Today")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Tasks should be removed from New section
+			assert.equals("New:", lines[1])
+			assert.equals("", lines[2]) -- Blank line remains
+			assert.equals("Today:", lines[3])
+			-- All tasks moved to Today
+			assert.equals("  task 1", lines[4])
+			assert.equals("  task 2", lines[5])
+			assert.equals("  task 3", lines[6])
+		end)
+
+		it("preserves task order when moving multiple tasks", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  first",
+				"  second",
+				"  third",
+				"",
+				"Done:",
+			})
+
+			-- Set visual selection marks for all three tasks
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 4, 0, {})
+
+			commands.move_tasks_to_section_visual("Done")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Verify order is preserved
+			assert.equals("  first", lines[4])
+			assert.equals("  second", lines[5])
+			assert.equals("  third", lines[6])
+		end)
+
+		it("creates target section if it doesn't exist", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"  task 2",
+			})
+
+			-- Set visual selection marks
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 3, 0, {})
+
+			commands.move_tasks_to_section_visual("Today")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			local has_today = false
+			local today_line = 0
+			for i, line in ipairs(lines) do
+				if line == "Today:" then
+					has_today = true
+					today_line = i
+				end
+			end
+			assert.is_true(has_today)
+			-- Verify tasks were added to Today section
+			assert.equals("  task 1", lines[today_line + 1])
+			assert.equals("  task 2", lines[today_line + 2])
+		end)
+
+		it("does nothing when selection contains no tasks", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"",
+				"",
+				"Today:",
+			})
+
+			-- Set visual selection marks on blank lines
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 3, 0, {})
+
+			local lines_before = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			commands.move_tasks_to_section_visual("Today")
+			local lines_after = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+			-- Buffer should be unchanged
+			assert.same(lines_before, lines_after)
+		end)
+
+		it("does nothing when selection spans multiple sections", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"",
+				"Today:",
+				"  task 2",
+			})
+
+			-- Set visual selection marks spanning both sections
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 5, 0, {})
+
+			local lines_before = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			commands.move_tasks_to_section_visual("Done")
+			local lines_after = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+			-- Buffer should be unchanged
+			assert.same(lines_before, lines_after)
+		end)
+
+		it("ignores non-task lines in selection", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  task 1",
+				"",
+				"  task 2",
+				"",
+				"Done:",
+			})
+
+			-- Set visual selection marks including blank line
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 4, 0, {})
+
+			commands.move_tasks_to_section_visual("Done")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Only the two tasks should be moved
+			-- Blank lines remain: New:, "", "", Done:, task 1, task 2
+			assert.equals("New:", lines[1])
+			assert.equals("", lines[2])
+			assert.equals("", lines[3])
+			assert.equals("Done:", lines[4])
+			assert.equals("  task 1", lines[5])
+			assert.equals("  task 2", lines[6])
+		end)
+
+		it("appends tasks to existing tasks in target section", function()
+			vim.cmd("enew")
+			vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+				"New:",
+				"  new task 1",
+				"  new task 2",
+				"",
+				"Done:",
+				"  existing done task",
+			})
+
+			-- Set visual selection marks for new tasks
+			vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+			vim.api.nvim_buf_set_mark(0, '>', 3, 0, {})
+
+			commands.move_tasks_to_section_visual("Done")
+
+			local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+			-- Tasks should be appended after existing task
+			assert.equals("Done:", lines[3])
+			assert.equals("  existing done task", lines[4])
+			assert.equals("  new task 1", lines[5])
+			assert.equals("  new task 2", lines[6])
 		end)
 	end)
 end)

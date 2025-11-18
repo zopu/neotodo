@@ -185,6 +185,160 @@ describe("task_mover", function()
     end)
   end)
 
+  describe("get_visual_selection_tasks", function()
+    it("gets all tasks in visual selection from same section", function()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+        "New:",
+        "  task 1",
+        "  task 2",
+        "  task 3",
+        "",
+        "Done:",
+      })
+
+      -- Set visual selection marks for lines 2-4
+      vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+      vim.api.nvim_buf_set_mark(0, '>', 4, 0, {})
+
+      local tasks = task_mover.get_visual_selection_tasks()
+      assert.is_not_nil(tasks)
+      assert.equals(3, #tasks)
+      assert.equals("  task 1", tasks[1].text)
+      assert.equals(2, tasks[1].line)
+      assert.equals("  task 3", tasks[3].text)
+      assert.equals(4, tasks[3].line)
+    end)
+
+    it("returns nil when selection spans multiple sections", function()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+        "New:",
+        "  task 1",
+        "",
+        "Done:",
+        "  task 2",
+      })
+
+      -- Set visual selection marks spanning both sections
+      vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+      vim.api.nvim_buf_set_mark(0, '>', 5, 0, {})
+
+      local tasks = task_mover.get_visual_selection_tasks()
+      assert.is_nil(tasks)
+    end)
+
+    it("returns nil when selection contains no tasks", function()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+        "New:",
+        "",
+        "",
+        "Done:",
+      })
+
+      -- Set visual selection marks on blank lines
+      vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+      vim.api.nvim_buf_set_mark(0, '>', 3, 0, {})
+
+      local tasks = task_mover.get_visual_selection_tasks()
+      assert.is_nil(tasks)
+    end)
+
+    it("ignores non-task lines in selection", function()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+        "New:",
+        "  task 1",
+        "",
+        "  task 2",
+        "",
+        "Done:",
+      })
+
+      -- Set visual selection marks including blank lines
+      vim.api.nvim_buf_set_mark(0, '<', 2, 0, {})
+      vim.api.nvim_buf_set_mark(0, '>', 4, 0, {})
+
+      local tasks = task_mover.get_visual_selection_tasks()
+      assert.is_not_nil(tasks)
+      assert.equals(2, #tasks)
+      assert.equals("  task 1", tasks[1].text)
+      assert.equals("  task 2", tasks[2].text)
+    end)
+  end)
+
+  describe("delete_task_lines", function()
+    it("deletes multiple task lines", function()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+        "New:",
+        "  task 1",
+        "  task 2",
+        "  task 3",
+        "",
+        "Done:",
+      })
+
+      task_mover.delete_task_lines({2, 3, 4})
+
+      local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      assert.equals(3, #lines)  -- Three lines removed
+      assert.equals("New:", lines[1])
+      assert.equals("", lines[2])
+      assert.equals("Done:", lines[3])
+    end)
+
+    it("handles non-consecutive line deletions", function()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+        "New:",
+        "  task 1",
+        "  task 2",
+        "  task 3",
+        "  task 4",
+        "",
+        "Done:",
+      })
+
+      task_mover.delete_task_lines({2, 4})
+
+      local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      assert.equals(5, #lines)  -- Two lines removed
+      assert.equals("  task 2", lines[2])
+      assert.equals("  task 4", lines[3])
+    end)
+  end)
+
+  describe("add_tasks_to_section", function()
+    it("adds multiple tasks to section at once", function()
+      task_mover.add_tasks_to_section("Done", {"  task 1", "  task 2", "  task 3"})
+
+      local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      assert.equals("  task 1", lines[5])
+      assert.equals("  task 2", lines[6])
+      assert.equals("  task 3", lines[7])
+    end)
+
+    it("adds tasks after existing tasks in section", function()
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, {
+        "New:",
+        "  existing task",
+        "",
+        "Done:",
+      })
+
+      task_mover.add_tasks_to_section("New", {"  new task 1", "  new task 2"})
+
+      local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      assert.equals("  existing task", lines[2])
+      assert.equals("  new task 1", lines[3])
+      assert.equals("  new task 2", lines[4])
+    end)
+
+    it("handles empty task array", function()
+      local lines_before = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      task_mover.add_tasks_to_section("Done", {})
+      local lines_after = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+
+      assert.equals(#lines_before, #lines_after)
+    end)
+  end)
+
   describe("integration scenarios", function()
     it("can move a task from one section to another", function()
       vim.api.nvim_buf_set_lines(0, 0, -1, false, {
