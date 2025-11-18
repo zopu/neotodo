@@ -13,6 +13,9 @@ function M.setup()
     group = group,
     pattern = { 'TODO.txt', 'todo.txt' },
     callback = function(ev)
+      -- Disable spell checking in TODO buffers
+      vim.opt_local.spell = false
+
       focus.on_buf_enter()
       keybinds.setup_buffer_keybinds(ev.buf)
     end,
