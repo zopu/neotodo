@@ -7,6 +7,53 @@ local focus = require("neotodo.focus")
 
 local M = {}
 
+--- Position cursor intelligently after moving/deleting a task
+--- Tries to move to next task, then previous task, then section header
+--- @param task_line number The line where the task was before deletion
+--- @param section_start number The start line of the section
+--- @param section_end number The end line of the section (before deletion)
+--- @param bufnr number Buffer number
+local function position_cursor_after_task_move(task_line, section_start, section_end, bufnr)
+	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+	-- After deletion, the section end is one line earlier
+	local adjusted_end = section_end - 1
+
+	-- Search for the next task within the same section
+	local next_task_line = nil
+	for i = task_line, math.min(adjusted_end, #lines) do
+		if parser.is_task_line(lines[i]) then
+			next_task_line = i
+			break
+		end
+	end
+
+	if next_task_line then
+		-- Found next task in the same section, move cursor there
+		vim.api.nvim_win_set_cursor(0, { next_task_line, 0 })
+	else
+		-- No next task, search backward for previous task in section
+		local prev_task_line = nil
+		for i = task_line - 1, section_start + 1, -1 do
+			if parser.is_task_line(lines[i]) then
+				prev_task_line = i
+				break
+			end
+		end
+
+		if prev_task_line then
+			-- Found previous task (was second-to-last), move cursor there
+			vim.api.nvim_win_set_cursor(0, { prev_task_line, 0 })
+		else
+			-- No tasks left in section, position at end of section header
+			if section_start <= #lines then
+				local header_line = lines[section_start]
+				vim.api.nvim_win_set_cursor(0, { section_start, #header_line })
+			end
+		end
+	end
+end
+
 --- Add a new task to the "New" section
 --- Creates the "New:" section at the top if it doesn't exist
 --- Adds an indented line and enters insert mode
@@ -100,31 +147,26 @@ function M.mark_as_done(bufnr)
 		return
 	end
 
+	-- Determine which section the task is in before deletion
+	local current_section = parser.get_section_at_line(task_line, bufnr)
+	local section_start, section_end = nil, nil
+
+	if current_section then
+		section_start, section_end = parser.get_section_range(current_section, bufnr)
+	end
+
 	-- Delete the task from its current location
 	task_mover.delete_task_line(task_line, bufnr)
 
 	-- Add the task to the "Done" section
 	task_mover.add_task_to_section("Done", task_text, bufnr)
 
-	-- Position cursor at the next task or stay in the current section
-	-- After deletion, the line that was below the deleted task is now at task_line
-	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-	-- Try to find the next task line starting from the current position
-	local next_task_line = nil
-	for i = task_line, #lines do
-		if parser.is_task_line(lines[i]) then
-			next_task_line = i
-			break
-		end
-	end
-
-	-- If we found a next task, move cursor there
-	-- Otherwise, stay at the current line (which might be a blank line or section header)
-	if next_task_line then
-		vim.api.nvim_win_set_cursor(0, { next_task_line, 0 })
+	-- Position cursor intelligently in the original section
+	if section_start then
+		position_cursor_after_task_move(task_line, section_start, section_end, bufnr)
 	else
-		-- No next task found, try to stay in a valid position
+		-- No section found (shouldn't happen), fall back to staying at current position
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 		local valid_line = math.min(task_line, #lines)
 		if valid_line > 0 then
 			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
@@ -147,31 +189,26 @@ function M.move_to_now(bufnr)
 		return
 	end
 
+	-- Determine which section the task is in before deletion
+	local current_section = parser.get_section_at_line(task_line, bufnr)
+	local section_start, section_end = nil, nil
+
+	if current_section then
+		section_start, section_end = parser.get_section_range(current_section, bufnr)
+	end
+
 	-- Delete the task from its current location
 	task_mover.delete_task_line(task_line, bufnr)
 
 	-- Add the task to the "Now" section
 	task_mover.add_task_to_section("Now", task_text, bufnr)
 
-	-- Position cursor at the next task or stay in the current section
-	-- After deletion, the line that was below the deleted task is now at task_line
-	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-	-- Try to find the next task line starting from the current position
-	local next_task_line = nil
-	for i = task_line, #lines do
-		if parser.is_task_line(lines[i]) then
-			next_task_line = i
-			break
-		end
-	end
-
-	-- If we found a next task, move cursor there
-	-- Otherwise, stay at the current line (which might be a blank line or section header)
-	if next_task_line then
-		vim.api.nvim_win_set_cursor(0, { next_task_line, 0 })
+	-- Position cursor intelligently in the original section
+	if section_start then
+		position_cursor_after_task_move(task_line, section_start, section_end, bufnr)
 	else
-		-- No next task found, try to stay in a valid position
+		-- No section found (shouldn't happen), fall back to staying at current position
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 		local valid_line = math.min(task_line, #lines)
 		if valid_line > 0 then
 			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
@@ -221,31 +258,26 @@ function M.move_task_to_section(section_name, bufnr)
 		return
 	end
 
+	-- Determine which section the task is in before deletion
+	local current_section = parser.get_section_at_line(task_line, bufnr)
+	local section_start, section_end = nil, nil
+
+	if current_section then
+		section_start, section_end = parser.get_section_range(current_section, bufnr)
+	end
+
 	-- Delete the task from its current location
 	task_mover.delete_task_line(task_line, bufnr)
 
 	-- Add the task to the specified section
 	task_mover.add_task_to_section(section_name, task_text, bufnr)
 
-	-- Position cursor at the next task or stay in the current section
-	-- After deletion, the line that was below the deleted task is now at task_line
-	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-
-	-- Try to find the next task line starting from the current position
-	local next_task_line = nil
-	for i = task_line, #lines do
-		if parser.is_task_line(lines[i]) then
-			next_task_line = i
-			break
-		end
-	end
-
-	-- If we found a next task, move cursor there
-	-- Otherwise, stay at the current line (which might be a blank line or section header)
-	if next_task_line then
-		vim.api.nvim_win_set_cursor(0, { next_task_line, 0 })
+	-- Position cursor intelligently in the original section
+	if section_start then
+		position_cursor_after_task_move(task_line, section_start, section_end, bufnr)
 	else
-		-- No next task found, try to stay in a valid position
+		-- No section found (shouldn't happen), fall back to staying at current position
+		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 		local valid_line = math.min(task_line, #lines)
 		if valid_line > 0 then
 			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })

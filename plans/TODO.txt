@@ -12,7 +12,6 @@ Medium Priority:
   On movement of task, cursor should stay in place
 
 Top Priority:
-  Mark as done shouldn't move the cursor
 
 Now:
 
@@ -20,3 +19,4 @@ Done:
   Better hiding in focus mode
   Add a "move to now" command
   Focus mode should show "Top Priority" by default
+  Mark as done shouldn't move the cursor
