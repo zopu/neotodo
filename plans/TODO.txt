@@ -1,8 +1,6 @@
 New:
 
 Lower Priority:
-  Focus mode: move
-  Focus mode: mark as done
   Focus mode: Graceful error for attempted editing
   Move task and follow it to the new location
 
@@ -10,11 +8,15 @@ Clean up:
   Test output is noisy - hard to tell at a glance that everything passed
 
 Medium Priority:
-  Focus mode: use color for prominence
+  Focus mode: move
+  Some way to easily move "Tomorrow" to "Today"
+  When moving to a section, center the view
 
 Top Priority:
+  Focus mode: mark as done
 
 Now:
+  Focus mode: use color for prominence
 
 Done:
   On movement of task, cursor should stay in place

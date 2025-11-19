@@ -44,6 +44,42 @@ local function get_filtered_content(bufnr)
   return filtered_lines
 end
 
+-- Apply highlights to focus buffer (dim non-Now, bold Now tasks)
+local function apply_focus_highlights(focus_bufnr, original_bufnr)
+  local sections = parser.get_sections(original_bufnr)
+  local focus_line = 0  -- 0-indexed for extmarks
+
+  for _, section in ipairs(sections) do
+    if not M.should_fold_section(section.name) then
+      local start_line, end_line = parser.get_section_range(section.name, original_bufnr)
+      if start_line and end_line then
+        local section_lines = vim.api.nvim_buf_get_lines(original_bufnr, start_line - 1, end_line, false)
+        local is_now_section = (section.name == "Now")
+
+        for i, line in ipairs(section_lines) do
+          local is_header = (i == 1)
+          local is_task = parser.is_task_line(line)
+
+          local hl_group
+          if is_now_section and is_task and not is_header then
+            hl_group = 'NeotodoNowTask'
+          else
+            hl_group = 'NeotodoDimmed'
+          end
+
+          vim.api.nvim_buf_set_extmark(focus_bufnr, ns_id, focus_line, 0, {
+            end_row = focus_line,
+            end_col = #line,
+            hl_group = hl_group,
+          })
+
+          focus_line = focus_line + 1
+        end
+      end
+    end
+  end
+end
+
 -- Map cursor position from original buffer to focus buffer
 local function map_cursor_to_focus(bufnr, cursor_pos)
   local row, col = cursor_pos[1], cursor_pos[2]
@@ -125,6 +161,9 @@ function M.focus_mode_enable()
 
   -- Write filtered content to scratch buffer
   vim.api.nvim_buf_set_lines(focus_bufnr, 0, -1, false, filtered_lines)
+
+  -- Apply focus mode highlighting
+  apply_focus_highlights(focus_bufnr, original_bufnr)
 
   -- Make buffer read-only
   vim.bo[focus_bufnr].modifiable = false

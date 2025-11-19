@@ -12,6 +12,10 @@ function M.setup(user_config)
   -- Merge user configuration with defaults
   config.setup(user_config or {})
 
+  -- Define highlight groups for focus mode
+  vim.api.nvim_set_hl(0, 'NeotodoDimmed', { fg = '#6c6c6c' })
+  vim.api.nvim_set_hl(0, 'NeotodoNowTask', { bold = true })
+
   -- Register commands
   local commands = require("neotodo.commands")
   vim.api.nvim_create_user_command("NeoTodoAddTask", function()
