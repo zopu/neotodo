@@ -10,6 +10,7 @@ Clean up:
 Medium Priority:
   Some way to easily move "Tomorrow" to "Today"
   When moving to a section, center the view
+  Commands to promote/demote tasks in hierarchy, and config for section hierarchy
 
 Top Priority:
 
@@ -26,3 +27,4 @@ Done:
   Focus mode: use color for prominence
   Focus mode: mark as done
   Focus mode: move
+  Add "Next" to focus mode
