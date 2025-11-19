@@ -4,13 +4,16 @@ local parser = require('neotodo.parser')
 
 local M = {}
 
---- Get the current task under the cursor
+--- Get the current task under the cursor (or at a specific line)
 --- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+--- @param line_num number|nil Optional line number (uses cursor position if not provided)
 --- @return string|nil, number|nil Task text and line number, or nil if not on a task
-function M.get_current_task(bufnr)
+function M.get_current_task(bufnr, line_num)
   bufnr = bufnr or 0
-  local cursor = vim.api.nvim_win_get_cursor(0)
-  local line_num = cursor[1]
+  if not line_num then
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    line_num = cursor[1]
+  end
 
   local lines = vim.api.nvim_buf_get_lines(bufnr, line_num - 1, line_num, false)
   if #lines == 0 then
@@ -30,27 +33,36 @@ end
 --- Get selected tasks in visual mode
 --- Returns nil if the selection spans multiple sections
 --- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+--- @param override_start number|nil Optional start line (uses visual selection if not provided)
+--- @param override_end number|nil Optional end line (uses visual selection if not provided)
 --- @return table|nil Array of {text = string, line = number}, or nil if selection invalid
-function M.get_visual_selection_tasks(bufnr)
+function M.get_visual_selection_tasks(bufnr, override_start, override_end)
   bufnr = bufnr or 0
 
-  -- Get visual selection range
-  -- Use mode() to check if we're still in visual mode
-  local mode = vim.fn.mode()
   local start_line, end_line
 
-  if mode:match('[vV]') then
-    -- Still in visual mode - use current visual selection positions
-    start_line = vim.fn.line("v")  -- Start of visual selection
-    end_line = vim.fn.line(".")    -- Current cursor position
-    -- Ensure start <= end
-    if start_line > end_line then
-      start_line, end_line = end_line, start_line
-    end
+  if override_start and override_end then
+    -- Use provided line range
+    start_line = override_start
+    end_line = override_end
   else
-    -- Not in visual mode - use marks from last visual selection
-    start_line = vim.fn.line("'<")
-    end_line = vim.fn.line("'>")
+    -- Get visual selection range
+    -- Use mode() to check if we're still in visual mode
+    local mode = vim.fn.mode()
+
+    if mode:match('[vV]') then
+      -- Still in visual mode - use current visual selection positions
+      start_line = vim.fn.line("v")  -- Start of visual selection
+      end_line = vim.fn.line(".")    -- Current cursor position
+      -- Ensure start <= end
+      if start_line > end_line then
+        start_line, end_line = end_line, start_line
+      end
+    else
+      -- Not in visual mode - use marks from last visual selection
+      start_line = vim.fn.line("'<")
+      end_line = vim.fn.line("'>")
+    end
   end
 
   -- Get all lines in the selection

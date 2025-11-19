@@ -171,9 +171,20 @@ end
 function M.move_task_to_section(section_name, bufnr)
 	bufnr = bufnr or 0
 
+	-- Check if we're in focus mode and get the original buffer
+	local original_bufnr, is_focus_mode = focus.get_original_bufnr(bufnr)
+	local focus_bufnr = is_focus_mode and bufnr or nil
+
+	-- Get current cursor line and map to original buffer if in focus mode
+	local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+	local original_line = cursor_line
+	if is_focus_mode then
+		original_line = focus.map_line_to_original(bufnr, cursor_line)
+	end
+
 	-- Validate cursor is on a task BEFORE showing picker
 	-- This fails early to avoid showing picker when there's nothing to move
-	local task_text, task_line = task_mover.get_current_task(bufnr)
+	local task_text, task_line = task_mover.get_current_task(original_bufnr, original_line)
 	if not task_text then
 		vim.notify("No task found under cursor", vim.log.levels.WARN)
 		return
@@ -182,7 +193,7 @@ function M.move_task_to_section(section_name, bufnr)
 	-- If no section name provided, show picker
 	if not section_name or section_name == "" then
 		local ui = require("neotodo.ui")
-		local sections = parser.get_sections(bufnr)
+		local sections = parser.get_sections(original_bufnr)
 
 		if #sections == 0 then
 			vim.notify("No sections found in TODO file", vim.log.levels.WARN)
@@ -192,12 +203,12 @@ function M.move_task_to_section(section_name, bufnr)
 		-- Show picker and recursively call this function with the selected section
 		ui.pick_section(sections, function(selected_section_name)
 			M.move_task_to_section(selected_section_name, bufnr)
-		end, bufnr, "Move Task to Section")
+		end, original_bufnr, "Move Task to Section")
 		return
 	end
 
 	-- Get the current task under the cursor (again, in case called directly with section_name)
-	task_text, task_line = task_mover.get_current_task(bufnr)
+	task_text, task_line = task_mover.get_current_task(original_bufnr, original_line)
 
 	if not task_text then
 		vim.notify("No task found under cursor", vim.log.levels.WARN)
@@ -205,28 +216,33 @@ function M.move_task_to_section(section_name, bufnr)
 	end
 
 	-- Determine which section the task is in before deletion
-	local current_section = parser.get_section_at_line(task_line, bufnr)
+	local current_section = parser.get_section_at_line(task_line, original_bufnr)
 	local section_start, section_end = nil, nil
 
 	if current_section then
-		section_start, section_end = parser.get_section_range(current_section, bufnr)
+		section_start, section_end = parser.get_section_range(current_section, original_bufnr)
 	end
 
 	-- Delete the task from its current location
-	task_mover.delete_task_line(task_line, bufnr)
+	task_mover.delete_task_line(task_line, original_bufnr)
 
 	-- Add the task to the specified section
-	task_mover.add_task_to_section(section_name, task_text, bufnr)
+	task_mover.add_task_to_section(section_name, task_text, original_bufnr)
 
-	-- Position cursor intelligently in the original section
-	if section_start then
-		position_cursor_after_task_move(task_line, section_start, section_end, bufnr)
+	-- If in focus mode, refresh the focus buffer
+	if is_focus_mode and focus_bufnr then
+		focus.refresh_focus_buffer(focus_bufnr)
 	else
-		-- No section found (shouldn't happen), fall back to staying at current position
-		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-		local valid_line = math.min(task_line, #lines)
-		if valid_line > 0 then
-			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
+		-- Position cursor intelligently in the original section (only when not in focus mode)
+		if section_start then
+			position_cursor_after_task_move(task_line, section_start, section_end, original_bufnr)
+		else
+			-- No section found (shouldn't happen), fall back to staying at current position
+			local lines = vim.api.nvim_buf_get_lines(original_bufnr, 0, -1, false)
+			local valid_line = math.min(task_line, #lines)
+			if valid_line > 0 then
+				vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
+			end
 		end
 	end
 end
@@ -239,8 +255,36 @@ end
 function M.move_tasks_to_section_visual(section_name, bufnr)
 	bufnr = bufnr or 0
 
-	-- Get the visual selection tasks
-	local tasks = task_mover.get_visual_selection_tasks(bufnr)
+	-- Check if we're in focus mode and get the original buffer
+	local original_bufnr, is_focus_mode = focus.get_original_bufnr(bufnr)
+	local focus_bufnr = is_focus_mode and bufnr or nil
+
+	-- Get visual selection range and map to original buffer if in focus mode
+	local focus_start, focus_end
+	local mode = vim.fn.mode()
+
+	if mode:match('[vV]') then
+		focus_start = vim.fn.line("v")
+		focus_end = vim.fn.line(".")
+		if focus_start > focus_end then
+			focus_start, focus_end = focus_end, focus_start
+		end
+	else
+		focus_start = vim.fn.line("'<")
+		focus_end = vim.fn.line("'>")
+	end
+
+	local original_start, original_end
+	if is_focus_mode then
+		original_start = focus.map_line_to_original(bufnr, focus_start)
+		original_end = focus.map_line_to_original(bufnr, focus_end)
+	else
+		original_start = focus_start
+		original_end = focus_end
+	end
+
+	-- Get the visual selection tasks from the original buffer
+	local tasks = task_mover.get_visual_selection_tasks(original_bufnr, original_start, original_end)
 
 	if not tasks or #tasks == 0 then
 		vim.notify("No tasks found in selection", vim.log.levels.WARN)
@@ -253,7 +297,7 @@ function M.move_tasks_to_section_visual(section_name, bufnr)
 	-- If no section name provided, show picker
 	if not section_name or section_name == "" then
 		local ui = require("neotodo.ui")
-		local sections = parser.get_sections(bufnr)
+		local sections = parser.get_sections(original_bufnr)
 
 		if #sections == 0 then
 			vim.notify("No sections found in TODO file", vim.log.levels.WARN)
@@ -263,12 +307,12 @@ function M.move_tasks_to_section_visual(section_name, bufnr)
 		-- Show picker and recursively call this function with the selected section
 		ui.pick_section(sections, function(selected_section_name)
 			M.move_tasks_to_section_visual(selected_section_name, bufnr)
-		end, bufnr, "Move Tasks to Section")
+		end, original_bufnr, "Move Tasks to Section")
 		return
 	end
 
 	-- Re-get tasks in case called directly with section_name (picker callback)
-	tasks = task_mover.get_visual_selection_tasks(bufnr)
+	tasks = task_mover.get_visual_selection_tasks(original_bufnr, original_start, original_end)
 	if not tasks or #tasks == 0 then
 		vim.notify("No tasks found in selection", vim.log.levels.WARN)
 		return
@@ -276,11 +320,11 @@ function M.move_tasks_to_section_visual(section_name, bufnr)
 
 	-- Determine which section the tasks are in before deletion
 	local first_task_line = tasks[1].line
-	local current_section = parser.get_section_at_line(first_task_line, bufnr)
+	local current_section = parser.get_section_at_line(first_task_line, original_bufnr)
 	local section_start, section_end = nil, nil
 
 	if current_section then
-		section_start, section_end = parser.get_section_range(current_section, bufnr)
+		section_start, section_end = parser.get_section_range(current_section, original_bufnr)
 	end
 
 	-- Collect task texts and line numbers
@@ -292,22 +336,27 @@ function M.move_tasks_to_section_visual(section_name, bufnr)
 	end
 
 	-- Delete the tasks from their current location (in reverse order to avoid line shifts)
-	task_mover.delete_task_lines(line_nums, bufnr)
+	task_mover.delete_task_lines(line_nums, original_bufnr)
 
 	-- Add all tasks to the specified section
-	task_mover.add_tasks_to_section(section_name, task_texts, bufnr)
+	task_mover.add_tasks_to_section(section_name, task_texts, original_bufnr)
 
-	-- Position cursor intelligently in the original section
-	-- Adjust section_end for the number of deleted tasks
-	if section_start then
-		local adjusted_section_end = section_end - #tasks + 1
-		position_cursor_after_task_move(first_task_line, section_start, adjusted_section_end, bufnr)
+	-- If in focus mode, refresh the focus buffer
+	if is_focus_mode and focus_bufnr then
+		focus.refresh_focus_buffer(focus_bufnr)
 	else
-		-- No section found (shouldn't happen), fall back to staying at current position
-		local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-		local valid_line = math.min(first_task_line, #lines)
-		if valid_line > 0 then
-			vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
+		-- Position cursor intelligently in the original section (only when not in focus mode)
+		-- Adjust section_end for the number of deleted tasks
+		if section_start then
+			local adjusted_section_end = section_end - #tasks + 1
+			position_cursor_after_task_move(first_task_line, section_start, adjusted_section_end, original_bufnr)
+		else
+			-- No section found (shouldn't happen), fall back to staying at current position
+			local lines = vim.api.nvim_buf_get_lines(original_bufnr, 0, -1, false)
+			local valid_line = math.min(first_task_line, #lines)
+			if valid_line > 0 then
+				vim.api.nvim_win_set_cursor(0, { valid_line, 0 })
+			end
 		end
 	end
 

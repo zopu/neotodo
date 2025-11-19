@@ -135,6 +135,81 @@ local function map_cursor_from_focus(original_bufnr, focus_row)
   return 1
 end
 
+-- Get the original buffer number if in focus mode, otherwise return the buffer itself
+-- Returns: original_bufnr, is_focus_mode
+function M.get_original_bufnr(bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+
+  -- Check if this is a focus buffer
+  local ok, original_bufnr = pcall(vim.api.nvim_buf_get_var, bufnr, 'neotodo_original_bufnr')
+  if ok and original_bufnr and vim.api.nvim_buf_is_valid(original_bufnr) then
+    return original_bufnr, true
+  end
+
+  return bufnr, false
+end
+
+-- Map a line number from focus buffer to original buffer
+-- Returns the corresponding line in the original buffer
+function M.map_line_to_original(focus_bufnr, focus_line)
+  local ok, original_bufnr = pcall(vim.api.nvim_buf_get_var, focus_bufnr, 'neotodo_original_bufnr')
+  if not ok or not original_bufnr then
+    return focus_line
+  end
+
+  return map_cursor_from_focus(original_bufnr, focus_line)
+end
+
+-- Refresh the focus buffer content after modifications to the original buffer
+function M.refresh_focus_buffer(focus_bufnr)
+  focus_bufnr = focus_bufnr or vim.api.nvim_get_current_buf()
+
+  -- Get the original buffer
+  local ok, original_bufnr = pcall(vim.api.nvim_buf_get_var, focus_bufnr, 'neotodo_original_bufnr')
+  if not ok or not original_bufnr or not vim.api.nvim_buf_is_valid(original_bufnr) then
+    return
+  end
+
+  -- Get current cursor position in focus buffer
+  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+  local focus_row = cursor_pos[1]
+
+  -- Map to original line before refresh
+  local original_row = map_cursor_from_focus(original_bufnr, focus_row)
+
+  -- Get new filtered content
+  local filtered_lines = get_filtered_content(original_bufnr)
+
+  -- Clear existing highlights
+  vim.api.nvim_buf_clear_namespace(focus_bufnr, ns_id, 0, -1)
+
+  -- Make buffer modifiable temporarily
+  vim.bo[focus_bufnr].modifiable = true
+
+  -- Update buffer content
+  vim.api.nvim_buf_set_lines(focus_bufnr, 0, -1, false, filtered_lines)
+
+  -- Re-apply highlights
+  apply_focus_highlights(focus_bufnr, original_bufnr)
+
+  -- Make buffer read-only again
+  vim.bo[focus_bufnr].modifiable = false
+
+  -- Map cursor position back to focus buffer
+  local new_focus_cursor = map_cursor_to_focus(original_bufnr, { original_row, cursor_pos[2] })
+
+  -- Ensure cursor is within bounds
+  local line_count = vim.api.nvim_buf_line_count(focus_bufnr)
+  if new_focus_cursor[1] > line_count then
+    new_focus_cursor[1] = line_count
+  end
+  if new_focus_cursor[1] < 1 then
+    new_focus_cursor[1] = 1
+  end
+
+  pcall(vim.api.nvim_win_set_cursor, 0, new_focus_cursor)
+end
+
 -- Enable focus mode for the current buffer
 function M.focus_mode_enable()
   local original_bufnr = vim.api.nvim_get_current_buf()
