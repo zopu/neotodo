@@ -108,7 +108,7 @@ function M.pick_section(sections, callback, bufnr, prompt)
 				callback(item.name, item.line)
 			end
 		end,
-		prompt = prompt,
+		prompt = prompt .. ": ",
 		preview = "preview", -- Enable preview showing section content
 	})
 end

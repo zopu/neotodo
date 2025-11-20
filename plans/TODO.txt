@@ -1,5 +1,4 @@
 New:
-  Design for web app / mobile solution for quick adding of tasks
 
 Lower Priority:
   Focus mode: Graceful error for attempted editing
@@ -8,11 +7,12 @@ Lower Priority:
 Clean up:
 
 Medium Priority:
+  Design for web app / mobile solution for quick adding of tasks
   Some way to easily move "Tomorrow" to "Today"
-  When moving to a section, center the view
-  Commands to promote/demote tasks in hierarchy, and config for section hierarchy
+  When navigating to a section, center the view
 
 Top Priority:
+  Commands to promote/demote tasks in hierarchy, and config for section hierarchy
 
 Now:
 
