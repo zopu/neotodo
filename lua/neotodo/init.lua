@@ -7,6 +7,14 @@ M.version = "0.1.0"
 
 -- Setup function called by users in their config
 function M.setup(user_config)
+  -- Register custom filetype (takes precedence over built-in detection)
+  vim.filetype.add({
+    filename = {
+      ['TODO.txt'] = 'neotodo',
+      ['todo.txt'] = 'neotodo',
+    },
+  })
+
   local config = require("neotodo.config")
 
   -- Merge user configuration with defaults

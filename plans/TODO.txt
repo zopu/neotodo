@@ -13,10 +13,12 @@ Medium Priority:
 
 Top Priority:
   Commands to promote/demote tasks in hierarchy, and config for section hierarchy
+  Cursor should stay in place on task movement
 
 Now:
 
 Done:
+  Sort out filetype detection
   On movement of task, cursor should stay in place
   Better hiding in focus mode
   Add a "move to now" command
