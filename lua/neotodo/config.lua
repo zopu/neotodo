@@ -12,6 +12,7 @@ M.defaults = {
 		focus_enable = nil, -- Enable focus mode
 		focus_disable = nil, -- Disable focus mode
 		focus_toggle = nil, -- Toggle focus mode
+		import_tasks = nil, -- Import tasks from configured shell command
 	},
 
 	-- File detection pattern

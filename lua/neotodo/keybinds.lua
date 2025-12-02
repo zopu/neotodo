@@ -144,6 +144,16 @@ function M.setup_buffer_keybinds(bufnr)
       silent = true,
     })
   end
+
+  if keybinds.import_tasks then
+    vim.keymap.set('n', keybinds.import_tasks, function()
+      commands.import_tasks()
+    end, {
+      buffer = bufnr,
+      desc = 'Import tasks from configured shell command',
+      silent = true,
+    })
+  end
 end
 
 return M

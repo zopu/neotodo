@@ -9,11 +9,12 @@ Clean up:
 Medium Priority:
   Design for web app / mobile solution for quick adding of tasks
   Some way to easily move "Tomorrow" to "Today"
+  Commands to promote/demote tasks in hierarchy, and config for section hierarchy
   When navigating to a section, center the view
 
-Top Priority:
-  Commands to promote/demote tasks in hierarchy, and config for section hierarchy
+High Priority:
   Cursor should stay in place on task movement
+  Fast punting
 
 Now:
 
@@ -30,3 +31,5 @@ Done:
   Focus mode: mark as done
   Focus mode: move
   Add "Next" to focus mode
+  Gist-based task entry
+  Design for configuration

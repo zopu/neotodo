@@ -49,6 +49,10 @@ function M.setup(user_config)
     commands.navigate_to_section()
   end, { desc = "Navigate to a section using a picker" })
 
+  vim.api.nvim_create_user_command("NeoTodoImportTasks", function()
+    commands.import_tasks()
+  end, { desc = "Import new tasks from configured shell command" })
+
   vim.api.nvim_create_user_command("NeoTodoFocusModeEnable", function()
     commands.focus_mode_enable()
   end, { desc = "Enable focus mode (hide all sections except Now and Top This Week)" })

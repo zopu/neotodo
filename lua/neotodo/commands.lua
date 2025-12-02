@@ -4,6 +4,7 @@ local parser = require("neotodo.parser")
 local config = require("neotodo.config")
 local task_mover = require("neotodo.task_mover")
 local focus = require("neotodo.focus")
+local file_config = require("neotodo.file_config")
 
 local M = {}
 
@@ -414,6 +415,54 @@ function M.navigate_to_section(bufnr)
 			vim.api.nvim_win_set_cursor(0, { line, col })
 		end
 	end, bufnr, "Navigate to Section")
+end
+
+--- Import new tasks by running a configured shell command
+--- The command is specified in .todo.json as "import_command"
+--- Each line of output from the command becomes a new task in the "New" section
+--- @param bufnr number|nil Buffer number (0 or nil for current buffer)
+function M.import_tasks(bufnr)
+	bufnr = bufnr or 0
+
+	-- Get the import command from file config
+	local import_command = file_config.get_import_command(bufnr)
+
+	if not import_command or import_command == "" then
+		vim.notify("No import_command configured in .todo.json", vim.log.levels.WARN)
+		return
+	end
+
+	-- Execute the shell command
+	local result = vim.fn.systemlist(import_command)
+	local exit_code = vim.v.shell_error
+
+	if exit_code ~= 0 then
+		vim.notify(
+			string.format("Import command failed with exit code %d: %s", exit_code, table.concat(result, "\n")),
+			vim.log.levels.ERROR
+		)
+		return
+	end
+
+	-- Filter out empty lines and add proper indentation
+	local task_indent = string.rep(" ", config.options.task_indent)
+	local tasks = {}
+	for _, line in ipairs(result) do
+		local trimmed = line:match("^%s*(.-)%s*$")
+		if trimmed and trimmed ~= "" then
+			table.insert(tasks, task_indent .. trimmed)
+		end
+	end
+
+	if #tasks == 0 then
+		vim.notify("No new tasks to import", vim.log.levels.INFO)
+		return
+	end
+
+	-- Add each task to the "New" section
+	task_mover.add_tasks_to_section("New", tasks, bufnr)
+
+	vim.notify(string.format("Imported %d task(s)", #tasks), vim.log.levels.INFO)
 end
 
 --- Enable focus mode
