@@ -13,6 +13,10 @@ function M.setup(user_config)
       ['TODO.txt'] = 'neotodo',
       ['todo.txt'] = 'neotodo',
     },
+    pattern = {
+      ['.*TODO_[^/]+%.txt'] = 'neotodo',
+      ['.*todo_[^/]+%.txt'] = 'neotodo',
+    },
   })
 
   local config = require("neotodo.config")

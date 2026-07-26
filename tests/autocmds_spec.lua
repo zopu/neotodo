@@ -122,4 +122,35 @@ describe("autocmds", function()
     end
     assert.is_true(has_keybind, "Expected keybindings to be applied on BufEnter for lowercase todo.txt")
   end)
+
+  it("applies keybindings when entering TODO_<name>.txt buffers", function()
+    local config = require('neotodo.config')
+
+    -- Configure a keybind
+    config.options.keybinds = {
+      add_task = '<leader>ta',
+    }
+
+    -- Set up autocmds
+    autocmds.setup()
+
+    -- Separate directories: macOS filesystems treat TODO_work.txt and todo_work.txt
+    -- as the same path, so Vim would refuse the second buffer name
+    for _, name in ipairs({ '/tmp/neotodo/upper/TODO_work.txt', '/tmp/neotodo/lower/todo_work.txt' }) do
+      vim.cmd('enew')
+      vim.api.nvim_buf_set_name(0, name)
+      vim.cmd('doautocmd BufEnter')
+
+      -- Check that the keybind was applied
+      local maps = vim.api.nvim_buf_get_keymap(0, 'n')
+      local has_keybind = false
+      for _, map in ipairs(maps) do
+        if map.desc and map.desc:match('Add new task') then
+          has_keybind = true
+          break
+        end
+      end
+      assert.is_true(has_keybind, "Expected keybindings to be applied on BufEnter for " .. name)
+    end
+  end)
 end)

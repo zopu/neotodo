@@ -1,2 +1,2 @@
-" Detect TODO.txt and todo.txt files and set filetype
-autocmd BufRead,BufNewFile TODO.txt,todo.txt setfiletype neotodo
+" Detect TODO.txt, todo.txt and TODO_<name>.txt / todo_<name>.txt files
+autocmd BufRead,BufNewFile TODO.txt,todo.txt,TODO_*.txt,todo_*.txt setfiletype neotodo

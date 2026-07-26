@@ -46,7 +46,14 @@ This plugin provides commands to manipulate tasks and sections, move quickly bet
 - "FocusModeDisable" - shows all sections again.
 - "AddTask" - Adds a new line to the "New" section and places the cursor there in insert mode.
 
-Keybinds for these commands can be set in the plugin setup. These keybinds will only be active when editing a file called TODO.txt.
+Keybinds for these commands can be set in the plugin setup. These keybinds will only be active when editing a TODO file.
+
+## Recognised files
+
+The plugin activates automatically for files named:
+
+- `TODO.txt` / `todo.txt`
+- `TODO_<something>.txt` / `todo_<something>.txt` (e.g. `TODO_work.txt`, `todo_2026_q3.txt`)
 
 ## Installation
 
@@ -55,7 +62,11 @@ Keybinds for these commands can be set in the plugin setup. These keybinds will 
 ```lua
 {
   "zopu/neotodo",
-  ft = "todo",  -- Lazy load on TODO.txt files
+  -- Lazy load on TODO files (matches TODO.txt, todo.txt, TODO_work.txt, ...)
+  event = {
+    "BufReadPre TODO*.txt", "BufNewFile TODO*.txt",
+    "BufReadPre todo*.txt", "BufNewFile todo*.txt",
+  },
   config = function()
     require("neotodo").setup({
       keybinds = {
@@ -121,9 +132,6 @@ The plugin accepts a configuration table in the `setup()` function. All fields a
 
 ```lua
 require("neotodo").setup({
-  -- Buffer patterns to match TODO files (default: {"TODO.txt", "todo.txt"})
-  file_patterns = { "TODO.txt", "todo.txt" },
-
   -- Sections visible in focus mode
   focus_sections = { "Now", "Top This Week", "Today" },
 

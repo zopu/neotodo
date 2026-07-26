@@ -4,14 +4,15 @@ local M = {}
 function M.setup()
   local focus = require('neotodo.focus')
   local keybinds = require('neotodo.keybinds')
+  local detect = require('neotodo.detect')
 
   -- Create autocommand group
   local group = vim.api.nvim_create_augroup('NeoTodo', { clear = true })
 
-  -- Apply/restore focus mode settings and keybindings when entering TODO.txt/todo.txt buffers
+  -- Apply/restore focus mode settings and keybindings when entering TODO buffers
   vim.api.nvim_create_autocmd('BufEnter', {
     group = group,
-    pattern = { 'TODO.txt', 'todo.txt' },
+    pattern = detect.autocmd_patterns,
     callback = function(ev)
       -- Disable spell checking in TODO buffers
       vim.opt_local.spell = false
@@ -24,7 +25,7 @@ function M.setup()
 
   vim.api.nvim_create_autocmd('BufLeave', {
     group = group,
-    pattern = { 'TODO.txt', 'todo.txt' },
+    pattern = detect.autocmd_patterns,
     callback = function()
       focus.on_buf_leave()
     end,

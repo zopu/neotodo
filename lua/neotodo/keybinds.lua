@@ -1,24 +1,10 @@
 local M = {}
 
+local detect = require('neotodo.detect')
+
 -- Check if buffer should have TODO keybindings
 local function is_todo_buffer(bufnr)
-  bufnr = bufnr or vim.api.nvim_get_current_buf()
-  local bufname = vim.api.nvim_buf_get_name(bufnr)
-
-  -- Handle empty buffer names (unnamed buffers)
-  if bufname == '' then
-    return false
-  end
-
-  local filename = vim.fn.fnamemodify(bufname, ':t')
-
-  -- Match TODO.txt or todo.txt (case-sensitive for both variants)
-  -- Also match focus buffers with [Focus] suffix
-  -- This handles both "TODO.txt" and "/path/to/TODO.txt" as well as lowercase
-  return filename == 'TODO.txt' or filename == 'todo.txt'
-      or bufname == 'TODO.txt' or bufname == 'todo.txt'
-      or bufname:match('TODO%.txt%s*%[Focus%]$')
-      or bufname:match('todo%.txt%s*%[Focus%]$')
+  return detect.is_todo_buffer(bufnr)
 end
 
 -- Set up buffer-local keybindings for a TODO.txt buffer
